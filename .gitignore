@@ -34,7 +34,7 @@ devops/docker/**/.env
 
 # IDE
 .idea/
-.vscode/settings.json
+.vscode/
 *.suo
 *.user
 
