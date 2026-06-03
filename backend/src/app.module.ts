@@ -3,6 +3,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MongooseModule } from '@nestjs/mongoose';
 import { appConfig, databaseConfig, jwtConfig, grpcConfig } from './config';
+import { HealthModule } from './modules/health/health.module';
 
 @Module({
   imports: [
@@ -36,6 +37,8 @@ import { appConfig, databaseConfig, jwtConfig, grpcConfig } from './config';
         uri: config.get<string>('database.mongo.uri'),
       }),
     }),
+
+    HealthModule,
   ],
 })
 export class AppModule {}
