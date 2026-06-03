@@ -4,6 +4,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { MongooseModule } from '@nestjs/mongoose';
 import { appConfig, databaseConfig, jwtConfig, grpcConfig } from './config';
 import { HealthModule } from './modules/health/health.module';
+import { MeasurementsModule } from './modules/measurements/measurements.module';
 
 @Module({
   imports: [
@@ -39,6 +40,7 @@ import { HealthModule } from './modules/health/health.module';
     }),
 
     HealthModule,
+    MeasurementsModule,
   ],
 })
 export class AppModule {}

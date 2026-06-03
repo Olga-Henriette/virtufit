@@ -26,5 +26,6 @@
       "@common/*": ["src/common/*"],
       "@modules/*": ["src/modules/*"]
     },
+    "types": ["node", "jest"]
   }
 }
