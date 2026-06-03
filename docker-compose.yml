@@ -1,0 +1,136 @@
+name: virtufit
+
+services:
+
+  # Bases de données
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: virtufit-postgres
+    restart: unless-stopped
+    env_file: .env.docker
+    environment:
+      POSTGRES_DB:       ${POSTGRES_DB}
+      POSTGRES_USER:     ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - virtufit-network
+
+  mongo:
+    image: mongo:7-jammy
+    container_name: virtufit-mongo
+    restart: unless-stopped
+    env_file: .env.docker
+    environment:
+      MONGO_INITDB_DATABASE: ${MONGO_INITDB_DATABASE}
+    volumes:
+      - mongo_data:/data/db
+    ports:
+      - "27017:27017"
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - virtufit-network
+
+  # Services applicatifs
+
+  backend:
+    build:
+      context:    ./backend
+      dockerfile: ../devops/docker/backend/Dockerfile
+      target:     production
+    container_name: virtufit-backend
+    restart: unless-stopped
+    env_file: .env.docker
+    environment:
+      NODE_ENV:          ${NODE_ENV}
+      APP_PORT:          3000
+      APP_PREFIX:        api/v1
+      POSTGRES_HOST:     postgres
+      POSTGRES_PORT:     5432
+      POSTGRES_DB:       ${POSTGRES_DB}
+      POSTGRES_USER:     ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      MONGO_URI:         mongodb://mongo:27017/${MONGO_INITDB_DATABASE}
+      JWT_SECRET:        ${JWT_SECRET}
+      GRPC_AI_HOST:      ai-services
+      GRPC_AI_PORT:      50051
+    ports:
+      - "3000:3000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    networks:
+      - virtufit-network
+
+  ai-services:
+    build:
+      context:    ./ai-services
+      dockerfile: ../devops/docker/ai-services/Dockerfile
+      target:     production
+    container_name: virtufit-ai
+    restart: unless-stopped
+    env_file: .env.docker
+    environment:
+      APP_ENV:           ${APP_ENV}
+      APP_PORT:          8000
+      POSTGRES_HOST:     postgres
+      POSTGRES_PORT:     5432
+      POSTGRES_DB:       ${POSTGRES_DB}
+      POSTGRES_USER:     ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      MONGO_URI:         mongodb://mongo:27017/${MONGO_INITDB_DATABASE}
+      GRPC_HOST:         0.0.0.0
+      GRPC_PORT:         50051
+      DEVICE:            ${DEVICE}
+    ports:
+      - "8000:8000"
+      - "50051:50051"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      mongo:
+        condition: service_healthy
+    networks:
+      - virtufit-network
+
+  nginx:
+    image: nginx:1.27-alpine
+    container_name: virtufit-nginx
+    restart: unless-stopped
+    volumes:
+      - ./devops/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    ports:
+      - "80:80"
+    depends_on:
+      - backend
+      - ai-services
+    networks:
+      - virtufit-network
+
+# Volumes persistants
+volumes:
+  postgres_data:
+    name: virtufit-postgres-data
+  mongo_data:
+    name: virtufit-mongo-data
+
+# Réseau interne
+networks:
+  virtufit-network:
+    name: virtufit-network
+    driver: bridge

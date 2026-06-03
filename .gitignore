@@ -50,3 +50,7 @@ ai-services/app/models/weights/*.onnx
 # Logs 
 *.log
 logs/
+
+# Docker
+.env.docker
+docker-compose.override.yml
