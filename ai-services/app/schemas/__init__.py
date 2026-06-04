@@ -13,6 +13,12 @@ from app.schemas.morphotype import (
     MorphotypeListResponse,
     MorphotypeAvatarRequest,
 )
+from app.schemas.personalization import (
+    SkinToneEnum,
+    HairColorEnum,
+    VisualFeatures,
+    PhotoAnalysisResponse,
+)
 
 __all__ = [
     "ApiResponse",
@@ -27,4 +33,8 @@ __all__ = [
     "MorphotypeDefinition",
     "MorphotypeListResponse",
     "MorphotypeAvatarRequest",
+    "SkinToneEnum",
+    "HairColorEnum",
+    "VisualFeatures",
+    "PhotoAnalysisResponse",
 ]

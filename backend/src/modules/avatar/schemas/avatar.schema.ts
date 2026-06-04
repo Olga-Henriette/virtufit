@@ -57,6 +57,22 @@ export class Avatar {
 
   @Prop({ type: Number })
   generationTimeMs!: number;
+
+  // Personnalisation visuelle
+  @Prop({ type: String, required: false, default: null })
+  photoReference!: string | null;
+
+  @Prop({ type: String, required: false, default: null })
+  skinTone!: string | null;
+
+  @Prop({ type: String, required: false, default: null })
+  hairColor!: string | null;
+
+  @Prop({ type: [Number], required: false, default: null })
+  skinRgb!: number[] | null;
+
+  @Prop({ type: [Number], required: false, default: null })
+  hairRgb!: number[] | null;
 }
 
 export const AvatarSchema = SchemaFactory.createForClass(Avatar);
