@@ -9,3 +9,4 @@ export {
   AvatarMeshDto,
 } from './avatar-response.dto';
 export * from './ai-avatar-response.dto';
+export { SelectMorphotypeDto, MorphotypeCode } from './select-morphotype.dto';

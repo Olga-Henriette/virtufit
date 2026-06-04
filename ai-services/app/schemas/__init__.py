@@ -7,6 +7,12 @@ from app.schemas.avatar import (
     AvatarMesh,
     GenderEnum,
 )
+from app.schemas.morphotype import (
+    MorphotypeCode,
+    MorphotypeDefinition,
+    MorphotypeListResponse,
+    MorphotypeAvatarRequest,
+)
 
 __all__ = [
     "ApiResponse",
@@ -17,4 +23,8 @@ __all__ = [
     "SMPLParameters",
     "AvatarMesh",
     "GenderEnum",
+    "MorphotypeCode",
+    "MorphotypeDefinition",
+    "MorphotypeListResponse",
+    "MorphotypeAvatarRequest",
 ]

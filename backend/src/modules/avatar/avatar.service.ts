@@ -8,7 +8,11 @@ import { InjectModel } from '@nestjs/mongoose';
 import { ConfigService } from '@nestjs/config';
 import { Model } from 'mongoose';
 import { Avatar, AvatarDocument } from './schemas/avatar.schema';
-import { GenerateAvatarDto, AvatarResponseDto } from './dto';
+import {
+  GenerateAvatarDto,
+  AvatarResponseDto,
+  SelectMorphotypeDto,
+} from './dto';
 import { AiAvatarResponse } from './dto';
 
 @Injectable()
@@ -88,6 +92,78 @@ export class AvatarService {
       .exec();
 
     return avatars.map((a) => this.toResponseDto(a));
+  }
+
+  //  Générer depuis un morphotype
+  async generateFromMorphotype(
+    dto: SelectMorphotypeDto,
+  ): Promise<AvatarResponseDto> {
+    this.logger.log(
+      `Génération depuis morphotype=${dto.morphotypeCode} user=${dto.userId}`,
+    );
+
+    const aiResponse = await this.callAiMorphotype(dto);
+
+    await this.avatarModel.updateMany(
+      { userId: dto.userId, isActive: true },
+      { $set: { isActive: false } },
+    );
+
+    const created = await this.avatarModel.create({
+      userId: dto.userId,
+      avatarId: aiResponse.avatar_id,
+      smplBetas: aiResponse.smpl_parameters.betas,
+      smplThetas: aiResponse.smpl_parameters.thetas,
+      meshReference: aiResponse.mesh.mesh_reference,
+      meshFormat: aiResponse.mesh.mesh_format,
+      verticesCount: aiResponse.mesh.vertices_count,
+      facesCount: aiResponse.mesh.faces_count,
+      heightCm: dto.targetHeightCm,
+      weightKg: dto.targetWeightKg,
+      bmi: aiResponse.bmi,
+      gender: 'neutral',
+      isActive: true,
+      generationTimeMs: aiResponse.generation_time_ms,
+    });
+
+    return this.toResponseDto(created);
+  }
+
+  // Appel HTTP morphotype → AI Services
+  private async callAiMorphotype(
+    dto: SelectMorphotypeDto,
+  ): Promise<AiAvatarResponse> {
+    const url = `${this.aiServiceUrl}/api/v1/morphotypes/generate-avatar`;
+
+    const payload = {
+      user_id: dto.userId,
+      morphotype_code: dto.morphotypeCode,
+      target_height_cm: dto.targetHeightCm,
+      target_weight_kg: dto.targetWeightKg,
+    };
+
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const error = await response.text();
+        throw new ServiceUnavailableException(
+          `AI Service — morphotype error: ${error}`,
+        );
+      }
+
+      const data: AiAvatarResponse =
+        (await response.json()) as AiAvatarResponse;
+
+      return data;
+    } catch (error) {
+      if (error instanceof ServiceUnavailableException) throw error;
+      throw new ServiceUnavailableException('AI Service est indisponible.');
+    }
   }
 
   // Appel HTTP vers AI Services

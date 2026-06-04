@@ -16,7 +16,11 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import { AvatarService } from './avatar.service';
-import { GenerateAvatarDto, AvatarResponseDto } from './dto';
+import {
+  GenerateAvatarDto,
+  AvatarResponseDto,
+  SelectMorphotypeDto,
+} from './dto';
 
 @ApiTags('Avatars')
 @ApiBearerAuth()
@@ -51,5 +55,15 @@ export class AvatarController {
     @Param('userId', ParseUUIDPipe) userId: string,
   ): Promise<AvatarResponseDto[]> {
     return this.avatarService.findAllByUserId(userId);
+  }
+
+  @Post('morphotype')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({ summary: 'Générer un avatar depuis un morphotype prédéfini' })
+  @ApiResponse({ status: 201, type: AvatarResponseDto })
+  async generateFromMorphotype(
+    @Body() dto: SelectMorphotypeDto,
+  ): Promise<AvatarResponseDto> {
+    return this.avatarService.generateFromMorphotype(dto);
   }
 }
