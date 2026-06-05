@@ -5,13 +5,20 @@ import { AvatarService } from './avatar.service';
 import { AvatarController } from './avatar.controller';
 import { PersonalizationService } from './personalization.service';
 import { PersonalizationController } from './personalization.controller';
+import { GrpcAvatarClient } from './grpc-avatar.client';
+import { AvatarGateway } from './avatar.gateway';
 
 @Module({
   imports: [
     MongooseModule.forFeature([{ name: Avatar.name, schema: AvatarSchema }]),
   ],
   controllers: [AvatarController, PersonalizationController],
-  providers: [AvatarService, PersonalizationService],
-  exports: [AvatarService, PersonalizationService],
+  providers: [
+    AvatarService,
+    PersonalizationService,
+    GrpcAvatarClient,
+    AvatarGateway,
+  ],
+  exports: [AvatarService, PersonalizationService, GrpcAvatarClient],
 })
 export class AvatarModule {}

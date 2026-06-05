@@ -1,11 +1,13 @@
 from contextlib import asynccontextmanager
 from typing import AsyncIterator
+import threading
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.router import api_router
 from app.core.config import get_settings
+from app.core.grpc_server import serve_grpc
 from app.utils.exceptions import (
     VirtuFitException,
     virtufit_exception_handler,
@@ -21,10 +23,24 @@ settings = get_settings()
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     """Gère le cycle de vie de l'application."""
     logger.info("VirtuFit AI Services démarrage...")
-    logger.info(f"   Environnement : {settings.app_env}")
-    logger.info(f"   Device ML     : {settings.device}")
+    logger.info("   Environnement : %s", settings.app_env)
+    logger.info("   Device ML     : %s", settings.device)
+
+    # Démarrage serveur gRPC dans un thread séparé 
+    grpc_server = serve_grpc()
+    grpc_thread = threading.Thread(
+        target=grpc_server.wait_for_termination,
+        daemon=True,
+        name="grpc-server",
+    )
+    grpc_thread.start()
+
     yield
-    logger.info("VirtuFit AI Services arrêt.")
+
+
+    logger.info("Arrêt du serveur gRPC...")
+    grpc_server.stop(grace=5)
+    logger.info("VirtuFit AI Services arrêté.")
 
 
 def create_app() -> FastAPI:

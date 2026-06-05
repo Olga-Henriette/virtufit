@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+package virtufit.simulation;
+
+// Service de simulation physique textile
+
+service SimulationService {
+  // Lance une simulation d'essayage
+  rpc StartSimulation (SimulationRequest) returns (SimulationResponse);
+
+  // Stream les frames de simulation en temps réel
+  rpc StreamSimulation (SimulationRequest) returns (stream SimulationFrame);
+
+  // Récupère le rapport d'ajustement
+  rpc GetFitAnalysis (FitAnalysisRequest) returns (FitAnalysisResponse);
+}
+
+// Messages de requête
+
+message SimulationRequest {
+  string session_id   = 1;
+  string user_id      = 2;
+  string avatar_id    = 3;
+  string clothing_id  = 4;
+
+  AvatarSimData avatar   = 5;
+  ClothingSimData clothing = 6;
+
+  string animation_type  = 7;  // "standing" | "walking" | "rotating"
+}
+
+message AvatarSimData {
+  repeated float smpl_betas  = 1;
+  repeated float smpl_thetas = 2;
+  float height_cm            = 3;
+  float weight_kg            = 4;
+}
+
+message ClothingSimData {
+  string mesh_reference    = 1;
+  float  elasticity_coeff  = 2;
+  float  friction_coeff    = 3;
+  float  weight_per_sqm    = 4;
+  string fabric_type       = 5;
+}
+
+message FitAnalysisRequest {
+  string session_id = 1;
+  string user_id    = 2;
+}
+
+// Messages de réponse
+
+message SimulationResponse {
+  string session_id      = 1;
+  string status          = 2;  // "started" | "completed" | "error"
+  float  simulation_ms   = 3;
+  FitAnalysisResponse fit_analysis = 4;
+}
+
+message SimulationFrame {
+  string session_id   = 1;
+  int32  frame_number = 2;
+  bytes  frame_data   = 3;   // données 3D sérialisées
+  float  progress     = 4;   // 0.0 → 1.0
+}
+
+message FitAnalysisResponse {
+  string session_id              = 1;
+  repeated TensionZone tensions  = 2;
+  string overall_fit             = 3;  // "tight" | "good" | "loose"
+  float  fit_score               = 4;  // 0.0 → 100.0
+  repeated string recommendations = 5;
+}
+
+message TensionZone {
+  string zone_name    = 1;  // "chest" | "waist" | "hips" | "shoulders"
+  string tension_level = 2; // "low" | "medium" | "high"
+  float  tension_value = 3; // valeur numérique 0.0 → 1.0
+}

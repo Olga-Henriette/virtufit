@@ -1,0 +1,94 @@
+syntax = "proto3";
+
+package virtufit.avatar;
+
+option java_package = "com.virtufit.avatar";
+
+// Service principal de gestion des avatars
+
+service AvatarService {
+  // Génère un avatar depuis les mensurations
+  rpc GenerateAvatar (AvatarGenerationRequest) returns (AvatarGenerationResponse);
+
+  // Récupère un avatar existant
+  rpc GetAvatar (GetAvatarRequest) returns (AvatarData);
+
+  // Stream les mises à jour d'avatar en temps réel
+  rpc StreamAvatarUpdates (GetAvatarRequest) returns (stream AvatarUpdate);
+}
+
+// Messages de requête
+
+message AvatarGenerationRequest {
+  string user_id = 1;
+
+  message Measurements {
+    float height_cm          = 1;
+    float weight_kg          = 2;
+    float chest_cm           = 3;
+    float waist_cm           = 4;
+    float hips_cm            = 5;
+    float shoulder_width_cm  = 6;
+    optional float inseam_cm     = 7;
+    optional float neck_cm       = 8;
+    optional float arm_length_cm = 9;
+    optional float thigh_cm      = 10;
+    string gender            = 11;
+  }
+
+  Measurements measurements = 2;
+}
+
+message GetAvatarRequest {
+  string user_id   = 1;
+  string avatar_id = 2;
+}
+
+// Messages de réponse
+
+message AvatarGenerationResponse {
+  string avatar_id     = 1;
+  string user_id       = 2;
+  SMPLParameters smpl  = 3;
+  MeshMetadata   mesh  = 4;
+  float bmi            = 5;
+  float generation_ms  = 6;
+}
+
+message AvatarData {
+  string avatar_id       = 1;
+  string user_id         = 2;
+  SMPLParameters smpl    = 3;
+  MeshMetadata   mesh    = 4;
+  VisualFeatures visual  = 5;
+  float bmi              = 6;
+  bool  is_active        = 7;
+}
+
+message AvatarUpdate {
+  string avatar_id    = 1;
+  string update_type  = 2;  // "generated" | "personalized" | "deactivated"
+  AvatarData data     = 3;
+  int64  timestamp_ms = 4;
+}
+
+// Messages communs
+
+message SMPLParameters {
+  repeated float betas  = 1;  // 10 paramètres de forme
+  repeated float thetas = 2;  // 72 paramètres de pose
+}
+
+message MeshMetadata {
+  string mesh_reference  = 1;
+  string mesh_format     = 2;
+  int32  vertices_count  = 3;
+  int32  faces_count     = 4;
+}
+
+message VisualFeatures {
+  string skin_tone   = 1;
+  string hair_color  = 2;
+  repeated int32 skin_rgb = 3;
+  repeated int32 hair_rgb = 4;
+}
