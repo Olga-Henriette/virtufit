@@ -34,6 +34,10 @@ from app.schemas.simulation import (
     TensionZone,
 )
 from app.utils.logger import get_logger
+from app.core.textile.collision_engine import (
+    build_avatar_proxy,
+    get_collision_engine,
+)
 
 logger = get_logger(__name__)
 
@@ -92,16 +96,7 @@ class MassSpringEngine:
         session_id: str,
     ) -> SimulationResponse:
         """
-        Lance une simulation complète d'essayage.
-
-        Args:
-            avatar     : Données morphologiques de l'avatar.
-            clothing   : Données et propriétés physiques du vêtement.
-            animation  : Type d'animation à simuler.
-            session_id : UUID de la session.
-
-        Returns:
-            SimulationResponse avec frames et rapport d'ajustement.
+        Lance une simulation complète d'essayage avec collision.
         """
         start_ms = time.perf_counter()
         logger.info(
@@ -113,6 +108,11 @@ class MassSpringEngine:
 
         # Construction du maillage
         particles, springs = self._build_mesh(avatar, clothing)
+
+        # Construction du proxy avatar
+        avatar_proxy    = build_avatar_proxy(avatar)
+        collision_engine = get_collision_engine()
+        total_collisions = 0
 
         # Nombre de frames selon l'animation
         frame_counts = {
@@ -128,18 +128,38 @@ class MassSpringEngine:
         dt_sub = TIME_STEP / sub_steps
 
         for frame_idx in range(n_frames):
+            # Boucle interne de sous-échantillonnage (sub-stepping)
             for _ in range(sub_steps):
+                # Pas physique avec le pas réduit
                 self._step(particles, springs, clothing, dt_sub)
-            frame = self._capture_frame(particles, frame_idx)
-            frames.append(frame)
+
+            # Résolution des collisions tissu ↔ avatar
+            resolved = collision_engine.resolve_cloth_avatar(
+                particles=particles,
+                avatar_proxy=avatar_proxy,
+                friction=clothing.fabric.friction_coeff,
+                iterations=SOLVER_ITERS // 2,
+            )
+            total_collisions += resolved
+
+            # Auto-collisions (passe allégée)
+            if frame_idx % 3 == 0:
+                collision_engine.detect_self_collision(particles)
+
+            frames.append(self._capture_frame(particles, frame_idx))
+
+        logger.debug(
+            "Collisions résolues — total=%d frames=%d",
+            total_collisions, n_frames,
+        )
 
         # Analyse d'ajustement
         fit_analysis = self._analyze_fit(particles, avatar, clothing)
 
         elapsed_ms = (time.perf_counter() - start_ms) * 1000
         logger.info(
-            "Simulation terminée — %.1f ms | frames=%d | fit=%.1f",
-            elapsed_ms, n_frames, fit_analysis.fit_score,
+            "Simulation terminée — %.1f ms | frames=%d | fit=%.1f | collisions=%d",
+            elapsed_ms, n_frames, fit_analysis.fit_score, total_collisions,
         )
 
         return SimulationResponse(

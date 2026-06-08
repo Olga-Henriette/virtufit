@@ -1,4 +1,5 @@
 import io
+import numpy as np
 import pytest
 from PIL import Image
 from app.core.textile.digitization_pipeline import DigitizationPipeline
@@ -14,7 +15,16 @@ def _make_photo(
     rgb: tuple[int, int, int] = (45, 80, 150),
     size: tuple = (400, 600),
 ) -> bytes:
-    img = Image.new("RGB", size, rgb)
+    # Créer une image unie avec NumPy
+    width, height = size
+    arr = np.full((height, width, 3), rgb, dtype=np.uint8)
+    
+    # Ajouter un léger bruit ou de légères variations pour éviter le warning de scikit-learn
+    # Ajout des valeurs aléatoires entre -2 et 2, puis on clip entre 0 et 255
+    noise = np.random.randint(-2, 3, (height, width, 3), dtype=np.int16)
+    arr = np.clip(arr.astype(np.int16) + noise, 0, 255).astype(np.uint8)
+
+    img = Image.fromarray(arr)
     buf = io.BytesIO()
     img.save(buf, format="JPEG")
     return buf.getvalue()
