@@ -24,6 +24,12 @@ from app.schemas.clothing import (
     ColorInfo, ContourInfo, PhotoAnalysis,
     DigitizedClothing, DigitizationRequest,
 )
+from app.schemas.simulation import (
+    AnimationType, FabricProperties,
+    AvatarSimData, ClothingSimData,
+    SimulationRequest, TensionZone,
+    FitAnalysis, SimulationFrame, SimulationResponse,
+)
 __all__ = [
     "ApiResponse",
     "HealthResponse",
@@ -48,5 +54,14 @@ __all__ = [
     "ContourInfo",
     "PhotoAnalysis",
     "DigitizedClothing",
-    "DigitizationRequest"
+    "DigitizationRequest",
+    "AnimationType",
+    "FabricProperties",
+    "AvatarSimData",
+    "ClothingSimData",
+    "SimulationRequest",
+    "TensionZone",
+    "FitAnalysis",
+    "SimulationFrame",
+    "SimulationResponse"
 ]
