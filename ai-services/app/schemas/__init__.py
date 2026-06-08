@@ -19,7 +19,11 @@ from app.schemas.personalization import (
     VisualFeatures,
     PhotoAnalysisResponse,
 )
-
+from app.schemas.clothing import (
+    ClothingCategory, FabricType, ViewAngle,
+    ColorInfo, ContourInfo, PhotoAnalysis,
+    DigitizedClothing, DigitizationRequest,
+)
 __all__ = [
     "ApiResponse",
     "HealthResponse",
@@ -37,4 +41,12 @@ __all__ = [
     "HairColorEnum",
     "VisualFeatures",
     "PhotoAnalysisResponse",
+    "ClothingCategory",
+    "FabricType",
+    "ViewAngle",
+    "ColorInfo",
+    "ContourInfo",
+    "PhotoAnalysis",
+    "DigitizedClothing",
+    "DigitizationRequest"
 ]
