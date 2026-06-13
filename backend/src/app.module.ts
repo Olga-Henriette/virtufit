@@ -8,6 +8,7 @@ import { MeasurementsModule } from './modules/measurements/measurements.module';
 import { AvatarModule } from './modules/avatar/avatar.module';
 import { SessionModule } from './modules/session/session.module';
 import { CatalogueModule } from './modules/catalogue/catalogue.module';
+import { TryOnModule } from './modules/tryon/tryon.module';
 
 @Module({
   imports: [
@@ -37,9 +38,24 @@ import { CatalogueModule } from './modules/catalogue/catalogue.module';
     // MongoDB via Mongoose
     MongooseModule.forRootAsync({
       inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        uri: config.get<string>('database.mongo.uri'),
-      }),
+      useFactory: (config: ConfigService) => {
+        let baseUri =
+          config.get<string>('MONGO_URI') || 'mongodb://localhost:27017';
+
+        baseUri = baseUri.trim();
+        if (baseUri.endsWith('/')) {
+          baseUri = baseUri.slice(0, -1);
+        }
+
+        const connectionUri = baseUri.includes('/virtufit')
+          ? baseUri
+          : `${baseUri}/virtufit`;
+
+        return {
+          uri: connectionUri,
+          dbName: 'virtufit',
+        };
+      },
     }),
 
     HealthModule,
@@ -47,6 +63,7 @@ import { CatalogueModule } from './modules/catalogue/catalogue.module';
     AvatarModule,
     SessionModule,
     CatalogueModule,
+    TryOnModule,
   ],
 })
 export class AppModule {}

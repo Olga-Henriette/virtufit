@@ -1,11 +1,7 @@
 import { Prop, Schema, SchemaFactory } from '@nestjs/mongoose';
 import { Document } from 'mongoose';
 
-export interface AvatarDocument extends Avatar, Document {
-  created_at: Date;
-  updated_at: Date;
-}
-
+export type AvatarDocument = Avatar & Document;
 @Schema({
   collection: 'avatars',
   timestamps: { createdAt: 'created_at', updatedAt: 'updated_at' },
@@ -73,6 +69,9 @@ export class Avatar {
 
   @Prop({ type: [Number], required: false, default: null })
   hairRgb!: number[] | null;
+
+  created_at!: Date;
+  updated_at!: Date;
 }
 
 export const AvatarSchema = SchemaFactory.createForClass(Avatar);

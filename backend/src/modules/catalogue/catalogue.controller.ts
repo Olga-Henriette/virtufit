@@ -62,7 +62,8 @@ export class CatalogueController {
         name: { type: 'string' },
         viewAngles: {
           type: 'string',
-          description: 'JSON array ex: ["front","back"]',
+          description:
+            'Angles séparés par des virgules (ex: "front,back") ou tableau JSON (ex: ["front","back"])',
         },
         photos: { type: 'array', items: { type: 'string', format: 'binary' } },
       },
@@ -80,20 +81,33 @@ export class CatalogueController {
       name: body.name,
     };
 
-    let angles: string[];
+    let angles: string[] = [];
 
     if (body.viewAngles) {
-      try {
-        angles = JSON.parse(body.viewAngles) as string[];
-      } catch {
-        angles = files.map(
-          (_, i) => ['front', 'back', 'left', 'right', 'detail'][i] ?? 'detail',
-        );
+      const trimmed = body.viewAngles.trim();
+
+      if (trimmed.startsWith('[')) {
+        try {
+          const parsed = JSON.parse(trimmed) as unknown;
+          if (Array.isArray(parsed)) {
+            angles = parsed.map((a) => String(a).trim());
+          }
+        } catch {
+          // Si le JSON est malformé, nettoyage manuel sans échappement inutile
+          angles = trimmed
+            .replace(/[[\]"]/g, '')
+            .split(',')
+            .map((a) => a.trim());
+        }
+      } else {
+        angles = trimmed.split(',').map((a) => a.trim());
       }
-    } else {
-      angles = files.map(
-        (_, i) => ['front', 'back', 'left', 'right', 'detail'][i] ?? 'detail',
-      );
+    }
+
+    // Fallback si aucun angle n'est extrait ou fourni
+    if (!angles || angles.length === 0) {
+      const defaultAngles = ['front', 'back', 'left', 'right', 'detail'];
+      angles = files.map((_, i) => defaultAngles[i] ?? 'detail');
     }
     return this.catalogueService.digitize(dto, files, angles);
   }

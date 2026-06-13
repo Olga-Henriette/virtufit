@@ -179,7 +179,7 @@ export class CatalogueService {
     formData.append('clothing_id', dto.clothingId);
     formData.append('vendor_id', dto.vendorId);
     formData.append('category', dto.category);
-    formData.append('view_angles', JSON.stringify(angles));
+    formData.append('view_angles', angles.join(','));
 
     for (const file of files) {
       formData.append(
