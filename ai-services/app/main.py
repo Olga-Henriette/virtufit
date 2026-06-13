@@ -26,6 +26,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("   Environnement : %s", settings.app_env)
     logger.info("   Device ML     : %s", settings.device)
 
+    # Initialise le device manager
+    from app.core.compute.device_manager import get_device_manager
+    device = get_device_manager()
+    logger.info("   Device actif  : %s", device.device_type.upper())
+
     # Démarrage serveur gRPC dans un thread séparé 
     grpc_server = serve_grpc()
     grpc_thread = threading.Thread(
