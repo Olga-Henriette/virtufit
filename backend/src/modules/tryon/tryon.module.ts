@@ -8,6 +8,7 @@ import { Clothing, ClothingSchema } from '../catalogue/schemas/clothing.schema';
 
 import { TryOnService } from './tryon.service';
 import { TryOnController } from './tryon.controller';
+import { ClothingGateway } from './clothing.gateway';
 
 @Module({
   imports: [
@@ -18,7 +19,7 @@ import { TryOnController } from './tryon.controller';
     ]),
   ],
   controllers: [TryOnController],
-  providers: [TryOnService],
-  exports: [TryOnService],
+  providers: [TryOnService, ClothingGateway],
+  exports: [TryOnService, ClothingGateway],
 })
 export class TryOnModule {}

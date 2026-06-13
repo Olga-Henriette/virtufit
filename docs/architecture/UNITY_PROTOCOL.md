@@ -154,3 +154,80 @@ via gRPC entre le Backend et les AI Services.
 
 Unity utilise ces paramètres pour instancier le maillage SMPL
 dans la scène 3D via le package `com.virtufit.smpl`.
+
+---
+
+## Namespace /unity-clothing — Streaming vêtement
+
+Dédié au streaming temps réel des données de vêtement vers Unity.
+
+Unity Engine
+
+│
+
+│ WebSocket ws://localhost:3000/unity-clothing
+
+▼
+
+NestJS ClothingGateway
+
+### Événements Unity → Backend
+
+| Événement           | Payload                                                                      | Description                    |
+|---------------------|------------------------------------------------------------------------------|--------------------------------|
+| `scene:init`        | `{ sessionId, avatarMeshRef, clothingMeshRef, frameCount, fabricType, ... }` | Init scène                     |
+| `frame:request`     | `{ sessionId, frameIndex }`                                                  | Demande frame spécifique       |
+| `stream:start`      | `{ sessionId, totalFrames, meshReference, ... }`                             | Démarre le streaming           |
+| `fit:zones-request` | `{ sessionId }`                                                              | Demande les zones de tension   |
+
+### Événements Backend → Unity
+
+| Événement            | Description                                   |
+|----------------------|-----------------------------------------------|
+| `clothing:connected` | Confirmation de connexion                     |
+| `scene:ready`        | Scène configurée, prête à recevoir les frames |
+| `frame:data`         | Frame de données vêtement (compressée)        |
+| `stream:started`     | Streaming démarré                             |
+| `stream:completed`   | Streaming terminé                             |
+| `fit:zones-data`     | Données des zones de tension                  |
+| `fit:analysis`       | Analyse d'ajustement complète                 |
+| `simulation:ready`   | Broadcast : simulation prête (tous clients)   |
+
+### Format d'une frame compressée
+
+```json
+{
+  "sessionId":   "uuid-session",
+  "frameIndex":  3,
+  "vertexCount": 192,
+  "energy":      0.0021,
+  "encoding":    "uint16_quantized",
+  "progress":    0.3,
+  "timestamp":   "2026-06-03T..."
+}
+```
+
+### Flux de démarrage Unity
+Unity                    Backend
+
+│                         │
+
+│── scene:init ──────────►│
+
+│◄─ scene:ready ──────────│
+
+│                         │
+
+│── stream:start ─────────►│
+
+│◄─ stream:started ────────│
+
+│◄─ frame:data (×N) ───────│  60 FPS
+
+│◄─ stream:completed ──────│
+
+│                         │
+
+│── fit:zones-request ────►│
+
+│◄─ fit:zones-data ────────│

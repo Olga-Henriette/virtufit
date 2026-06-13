@@ -30,6 +30,12 @@ from app.schemas.simulation import (
     SimulationRequest, TensionZone,
     FitAnalysis, SimulationFrame, SimulationResponse,
 )
+from app.schemas.visualization import (
+    ClothingMetadata,
+    ClothingFrameData,
+    UnitySceneConfig,
+    StreamStatus,
+)
 __all__ = [
     "ApiResponse",
     "HealthResponse",
@@ -63,5 +69,9 @@ __all__ = [
     "TensionZone",
     "FitAnalysis",
     "SimulationFrame",
-    "SimulationResponse"
+    "SimulationResponse",
+    "ClothingMetadata", 
+    "ClothingFrameData",
+    "UnitySceneConfig", 
+    "StreamStatus",
 ]
