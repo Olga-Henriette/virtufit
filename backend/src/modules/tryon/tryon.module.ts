@@ -9,7 +9,8 @@ import { Clothing, ClothingSchema } from '../catalogue/schemas/clothing.schema';
 import { TryOnService } from './tryon.service';
 import { TryOnController } from './tryon.controller';
 import { ClothingGateway } from './clothing.gateway';
-
+import { FitReportService } from './fit-report.service';
+import { FitReportController } from './fit-report.controller';
 @Module({
   imports: [
     TypeOrmModule.forFeature([TryOnSession]),
@@ -18,8 +19,8 @@ import { ClothingGateway } from './clothing.gateway';
       { name: Clothing.name, schema: ClothingSchema },
     ]),
   ],
-  controllers: [TryOnController],
-  providers: [TryOnService, ClothingGateway],
-  exports: [TryOnService, ClothingGateway],
+  controllers: [TryOnController, FitReportController],
+  providers: [TryOnService, ClothingGateway, FitReportService],
+  exports: [TryOnService, ClothingGateway, FitReportService],
 })
 export class TryOnModule {}

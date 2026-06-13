@@ -36,6 +36,11 @@ from app.schemas.visualization import (
     UnitySceneConfig,
     StreamStatus,
 )
+from app.schemas.fit_analysis import (
+    FitCategory, TensionLevel, AnatomicZone,
+    ZoneAnalysis, SizeComparison,
+    DetailedFitAnalysis, FitHistoryEntry, FitTrend,
+)
 __all__ = [
     "ApiResponse",
     "HealthResponse",
@@ -74,4 +79,12 @@ __all__ = [
     "ClothingFrameData",
     "UnitySceneConfig", 
     "StreamStatus",
+    "FitCategory", 
+    "TensionLevel", 
+    "AnatomicZone",
+    "ZoneAnalysis", 
+    "SizeComparison",
+    "DetailedFitAnalysis", 
+    "FitHistoryEntry", 
+    "FitTrend",
 ]
