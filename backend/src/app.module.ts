@@ -1,8 +1,9 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MongooseModule } from '@nestjs/mongoose';
 import { appConfig, databaseConfig, jwtConfig, grpcConfig } from './config';
+import { CorrelationMiddleware } from './common/middleware/correlation.middleware';
 import { HealthModule } from './modules/health/health.module';
 import { MeasurementsModule } from './modules/measurements/measurements.module';
 import { AvatarModule } from './modules/avatar/avatar.module';
@@ -70,4 +71,8 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     AnalyticsModule,
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer.apply(CorrelationMiddleware).forRoutes('*');
+  }
+}

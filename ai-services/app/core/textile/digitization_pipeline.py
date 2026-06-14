@@ -151,7 +151,9 @@ class DigitizationPipeline:
         pixels = np.array(small).reshape(-1, 3).astype(float)
 
         # K-Means pour trouver les couleurs dominantes
-        k       = min(self.N_PALETTE_COLORS, len(pixels))
+        unique_pixels = np.unique(pixels, axis=0)
+        k       = min(self.N_PALETTE_COLORS, len(unique_pixels))
+        
         kmeans  = KMeans(n_clusters=k, random_state=42, n_init=5)
         kmeans.fit(pixels)
 
