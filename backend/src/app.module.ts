@@ -10,6 +10,7 @@ import { SessionModule } from './modules/session/session.module';
 import { CatalogueModule } from './modules/catalogue/catalogue.module';
 import { TryOnModule } from './modules/tryon/tryon.module';
 import { VendorModule } from './modules/vendor/vendor.module';
+import { AnalyticsModule } from './modules/analytics/analytics.module';
 
 @Module({
   imports: [
@@ -66,6 +67,7 @@ import { VendorModule } from './modules/vendor/vendor.module';
     CatalogueModule,
     TryOnModule,
     VendorModule,
+    AnalyticsModule,
   ],
 })
 export class AppModule {}
