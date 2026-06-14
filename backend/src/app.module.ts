@@ -9,6 +9,7 @@ import { AvatarModule } from './modules/avatar/avatar.module';
 import { SessionModule } from './modules/session/session.module';
 import { CatalogueModule } from './modules/catalogue/catalogue.module';
 import { TryOnModule } from './modules/tryon/tryon.module';
+import { VendorModule } from './modules/vendor/vendor.module';
 
 @Module({
   imports: [
@@ -64,6 +65,7 @@ import { TryOnModule } from './modules/tryon/tryon.module';
     SessionModule,
     CatalogueModule,
     TryOnModule,
+    VendorModule,
   ],
 })
 export class AppModule {}
