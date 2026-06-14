@@ -11,6 +11,8 @@ import { TryOnController } from './tryon.controller';
 import { ClothingGateway } from './clothing.gateway';
 import { FitReportService } from './fit-report.service';
 import { FitReportController } from './fit-report.controller';
+import { AsyncTaskGateway } from './async-task.gateway';
+
 @Module({
   imports: [
     TypeOrmModule.forFeature([TryOnSession]),
@@ -20,7 +22,12 @@ import { FitReportController } from './fit-report.controller';
     ]),
   ],
   controllers: [TryOnController, FitReportController],
-  providers: [TryOnService, ClothingGateway, FitReportService],
-  exports: [TryOnService, ClothingGateway, FitReportService],
+  providers: [
+    TryOnService,
+    ClothingGateway,
+    FitReportService,
+    AsyncTaskGateway,
+  ],
+  exports: [TryOnService, ClothingGateway, FitReportService, AsyncTaskGateway],
 })
 export class TryOnModule {}

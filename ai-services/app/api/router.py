@@ -8,6 +8,7 @@ from app.api.routes.simulation      import router as simulation_router
 from app.api.routes.visualization   import router as visualization_router
 from app.api.routes.fit_analysis    import router as fit_analysis_router
 from app.api.routes.monitoring      import router as monitoring_router
+from app.api.routes.tasks           import router as tasks_router
 
 api_router = APIRouter(prefix="/api/v1")
 
@@ -20,4 +21,5 @@ api_router.include_router(simulation_router)
 api_router.include_router(visualization_router)
 api_router.include_router(fit_analysis_router)
 api_router.include_router(monitoring_router)
+api_router.include_router(tasks_router)
 

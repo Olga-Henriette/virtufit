@@ -41,6 +41,11 @@ from app.schemas.fit_analysis import (
     ZoneAnalysis, SizeComparison,
     DetailedFitAnalysis, FitHistoryEntry, FitTrend,
 )
+from app.schemas.tasks import (
+    TaskStatus, TaskPriority, TaskType,
+    TaskRequest, TaskResult,
+    TaskStatusResponse, QueueStats,
+)
 __all__ = [
     "ApiResponse",
     "HealthResponse",
@@ -87,4 +92,11 @@ __all__ = [
     "DetailedFitAnalysis", 
     "FitHistoryEntry", 
     "FitTrend",
+    "TaskStatus", 
+    "TaskPriority", 
+    "TaskType",
+    "TaskRequest", 
+    "TaskResult",
+    "TaskStatusResponse", 
+    "QueueStats",
 ]

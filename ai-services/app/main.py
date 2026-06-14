@@ -26,12 +26,17 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("   Environnement : %s", settings.app_env)
     logger.info("   Device ML     : %s", settings.device)
 
-    # Initialise le device manager
+    # 1. Initialise le device manager
     from app.core.compute.device_manager import get_device_manager
     device = get_device_manager()
     logger.info("   Device actif  : %s", device.device_type.upper())
 
-    # Démarrage serveur gRPC dans un thread séparé 
+    # 2. Worker Pool
+    from app.core.compute.task_worker import get_worker_pool
+    pool = get_worker_pool()
+    pool.start()
+
+    # 3. Démarrage serveur gRPC dans un thread séparé 
     grpc_server = serve_grpc()
     grpc_thread = threading.Thread(
         target=grpc_server.wait_for_termination,
@@ -40,9 +45,12 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     )
     grpc_thread.start()
 
+    logger.info(" Tous les services démarrés")
     yield
 
-
+    # Arrêt propre
+    logger.info("Arrêt du WorkerPool...")
+    pool.stop()
     logger.info("Arrêt du serveur gRPC...")
     grpc_server.stop(grace=5)
     logger.info("VirtuFit AI Services arrêté.")
