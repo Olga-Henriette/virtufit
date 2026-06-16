@@ -103,19 +103,29 @@ export class MeasurementsService {
     const dto = new MeasurementResponseDto();
     dto.id = entity.id;
     dto.userId = entity.userId;
-    dto.heightCm = Number(entity.heightCm);
-    dto.weightKg = Number(entity.weightKg);
-    dto.chestCm = Number(entity.chestCm);
-    dto.waistCm = Number(entity.waistCm);
-    dto.hipsCm = Number(entity.hipsCm);
-    dto.shoulderWidthCm = Number(entity.shoulderWidthCm);
-    dto.inseamCm = entity.inseamCm ? Number(entity.inseamCm) : null;
-    dto.neckCm = entity.neckCm ? Number(entity.neckCm) : null;
-    dto.armLengthCm = entity.armLengthCm ? Number(entity.armLengthCm) : null;
-    dto.thighCm = entity.thighCm ? Number(entity.thighCm) : null;
+
+    // Conversion sécurisée decimal → number
+    dto.heightCm = this._safeNumber(entity.heightCm);
+    dto.weightKg = this._safeNumber(entity.weightKg);
+    dto.chestCm = this._safeNumber(entity.chestCm);
+    dto.waistCm = this._safeNumber(entity.waistCm);
+    dto.hipsCm = this._safeNumber(entity.hipsCm);
+    dto.shoulderWidthCm = this._safeNumber(entity.shoulderWidthCm);
+    dto.inseamCm = entity.inseamCm ? this._safeNumber(entity.inseamCm) : null;
+    dto.neckCm = entity.neckCm ? this._safeNumber(entity.neckCm) : null;
+    dto.armLengthCm = entity.armLengthCm
+      ? this._safeNumber(entity.armLengthCm)
+      : null;
+    dto.thighCm = entity.thighCm ? this._safeNumber(entity.thighCm) : null;
+
     dto.isActive = entity.isActive;
     dto.createdAt = entity.createdAt;
     dto.updatedAt = entity.updatedAt;
     return dto;
+  }
+
+  private _safeNumber(value: unknown): number {
+    const n = Number(value);
+    return isFinite(n) ? n : 0;
   }
 }

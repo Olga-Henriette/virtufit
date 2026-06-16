@@ -32,10 +32,6 @@ interface TensionZoneStructure {
   tensionLevel?: string;
 }
 
-interface SimulationResultStructure {
-  size_suggestion?: string;
-}
-
 @Injectable()
 export class VendorService {
   private readonly logger = new Logger(VendorService.name);
@@ -287,9 +283,9 @@ export class VendorService {
     const zoneData: Record<string, { values: number[]; levels: string[] }> = {};
 
     for (const session of sessions) {
-      const zones =
-        (session.tensionZones as unknown as TensionZoneStructure[]) ?? [];
-      for (const z of zones) {
+      const zones = session.tensionZones ?? [];
+      for (const item of zones) {
+        const z: TensionZoneStructure = item;
         const name = z.zone_name ?? z.zoneName;
         if (!name) continue;
         if (!zoneData[name]) zoneData[name] = { values: [], levels: [] };
@@ -371,9 +367,9 @@ export class VendorService {
     const zoneLevels: Record<string, string[]> = {};
 
     for (const session of sessions) {
-      const zones =
-        (session.tensionZones as unknown as TensionZoneStructure[]) ?? [];
-      for (const z of zones) {
+      const zones = session.tensionZones ?? [];
+      for (const item of zones) {
+        const z: TensionZoneStructure = item;
         const name = z.zone_name ?? z.zoneName;
         const level = z.tension_level ?? z.tensionLevel ?? 'low';
         if (!name || level === 'none' || level === 'low') continue;
@@ -419,18 +415,23 @@ export class VendorService {
     for (const s of sessions) {
       if (s.status !== SessionStatus.COMPLETED) continue;
 
-      // Récupère la taille depuis simulationResult
-      const simResult =
-        s.simulationResult as unknown as SimulationResultStructure;
-      const size = simResult?.size_suggestion ?? 'M';
+      const simResult: Record<string, unknown> | null = s.simulationResult;
 
-      if (!sizeMap[size]) sizeMap[size] = { count: 0, scores: [] };
-      sizeMap[size].count++;
-      if (s.fitScore) sizeMap[size].scores.push(Number(s.fitScore));
+      // Guard : simulationResult peut être null
+      const size =
+        (simResult?.['size_suggestion'] as string | undefined) ?? 'M';
+      const validSize =
+        typeof size === 'string' && size.length > 0 ? size : 'M';
+
+      if (!sizeMap[validSize]) sizeMap[validSize] = { count: 0, scores: [] };
+      sizeMap[validSize].count++;
+      if (s.fitScore != null) {
+        const score = Number(s.fitScore);
+        if (isFinite(score)) sizeMap[validSize].scores.push(score);
+      }
     }
 
     const total = Object.values(sizeMap).reduce((a, v) => a + v.count, 0);
-
     const sizeOrder = ['XS', 'S', 'M', 'L', 'XL', 'XXL'];
 
     return sizeOrder
@@ -447,7 +448,8 @@ export class VendorService {
         return {
           size,
           tryOnCount: data.count,
-          percentage: total ? Math.round((data.count / total) * 1000) / 10 : 0,
+          percentage:
+            total > 0 ? Math.round((data.count / total) * 1000) / 10 : 0,
           avgFitScore: avgScore,
         };
       });

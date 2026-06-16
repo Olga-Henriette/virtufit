@@ -497,16 +497,22 @@ class CollisionEngine:
             
             dist = distances[idx_in_v, c_idx]
             delta = deltas[idx_in_v, c_idx]
+            radius = c_radius[c_idx]
             threshold = thresholds[0, c_idx]
             
-            if dist < 1e-6:
-                normal = np.array([0.0, 0.0, 1.0], dtype=np.float32)
-                dist = 0.0
+            # Guard 1 : Distance nulle (Particule pile sur l'axe central)
+            if dist < 1e-8:
+                normal = np.array([0.0, 1.0, 0.0], dtype=np.float32) # Répulsion Y par défaut
+                penetration = threshold
             else:
                 normal = delta / dist
+                penetration = threshold - dist
                 
-            # Éjection de position
-            penetration = threshold - dist
+            # Guard 2 : Pénétration excessive (Évite l'explosion du tissu)
+            max_correction = radius * 0.5
+            penetration = min(penetration, max_correction)
+            
+            # Application de la correction de position
             positions[p_idx] += normal * penetration
             
             # Correction de la vitesse avec rebond et friction
@@ -514,8 +520,17 @@ class CollisionEngine:
             vel_normal = float(np.dot(vel, normal))
             
             if vel_normal < 0:
+                # Application de la restitution
                 vel -= (1.0 + RESTITUTION_COEFF) * vel_normal * normal
+                
+                # Extraction de la vitesse tangentielle
                 vel_tangential = vel - np.dot(vel, normal) * normal
+                
+                # Guard 3 : Vitesse tangentielle infinie ou instable
+                vt_norm = float(np.linalg.norm(vel_tangential))
+                if vt_norm > 100.0:
+                    vel_tangential = (vel_tangential / vt_norm) * 100.0
+                    
                 vel -= friction * vel_tangential
                 velocities[p_idx] = vel
                 

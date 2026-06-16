@@ -217,6 +217,7 @@ export class SessionService {
   }
 
   async getUserStats(userId: string): Promise<Record<string, unknown>> {
+    // 1. Exécution parallèle des requêtes d'indexation pour une performance maximale
     const [totalSessions, completedSessions, snapshots] = await Promise.all([
       this.sessionRepo.count({ where: { userId } }),
       this.sessionRepo.count({
@@ -225,23 +226,37 @@ export class SessionService {
       this.snapshotRepo.count({ where: { userId } }),
     ]);
 
-    // Score moyen des essayages complétés
-    const avgFitResult = await this.sessionRepo
-      .createQueryBuilder('s')
-      .select('AVG(s.fit_score)', 'avgFit')
-      .where('s.user_id = :userId', { userId })
-      .andWhere('s.status = :status', { status: SessionStatus.COMPLETED })
-      .andWhere('s.fit_score IS NOT NULL')
-      .getRawOne<{ avgFit: string }>();
+    let averageFitScore: number | null = null;
+
+    // 2. Isolation du calcul SQL brut pour éviter de bloquer l'ensemble de la réponse en cas d'anomalie
+    try {
+      const avgFitResult = await this.sessionRepo
+        .createQueryBuilder('s')
+        .select('AVG(s.fit_score)', 'avgFit')
+        .where('s.user_id = :userId', { userId })
+        .andWhere('s.status = :status', { status: SessionStatus.COMPLETED })
+        .andWhere('s.fit_score IS NOT NULL')
+        .getRawOne<{ avgFit: string | null }>();
+
+      // 3. Guard multicouche contre les valeurs NULL, indéfinies, NaN ou infinies
+      if (avgFitResult?.avgFit != null) {
+        const parsed = parseFloat(avgFitResult.avgFit);
+        averageFitScore = isFinite(parsed)
+          ? Math.round(parsed * 100) / 100
+          : null;
+      }
+    } catch (err) {
+      this.logger.warn(
+        `Impossible de calculer avgFit pour user=${userId}: ${err instanceof Error ? err.message : String(err)}`,
+      );
+    }
 
     return {
       totalSessions,
       completedSessions,
       failedSessions: totalSessions - completedSessions,
       totalSnapshots: snapshots,
-      averageFitScore: avgFitResult?.avgFit
-        ? Math.round(parseFloat(avgFitResult.avgFit) * 100) / 100
-        : null,
+      averageFitScore,
     };
   }
 

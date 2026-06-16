@@ -519,19 +519,28 @@ class MassSpringEngine:
     ) -> list[TensionZone]:
         """
         Calcule les tensions dans les zones anatomiques clés.
-
-        Stratégie : divise la grille en zones verticales et
-        mesure l'énergie moyenne de chaque zone.
         """
         rows, cols = MassSpringEngine.GRID_ROWS, MassSpringEngine.GRID_COLS
         n          = len(particles)
-        zone_size  = n // 4
 
+        # Guard : maillage vide ou trop petit 
+        if n < 4:
+            logger.warning("Maillage trop petit (%d particules) pour analyse.", n)
+            return [
+                TensionZone(
+                    zone_name="body",
+                    tension_level="low",
+                    tension_value=0.0,
+                    recommendation=None,
+                )
+            ]
+
+        zone_size = max(1, n // 4)
         zone_defs = [
-            ("shoulders", 0,          zone_size),
-            ("chest",     zone_size,  zone_size * 2),
-            ("waist",     zone_size * 2, zone_size * 3),
-            ("hips",      zone_size * 3, n),
+            ("shoulders", 0,              zone_size),
+            ("chest",     zone_size,      zone_size * 2),
+            ("waist",     zone_size * 2,  zone_size * 3),
+            ("hips",      zone_size * 3,  n),
         ]
 
         tensions: list[TensionZone] = []
@@ -546,10 +555,19 @@ class MassSpringEngine:
                 for p in zone_particles
                 if not p.pinned
             ]
-            avg_speed = float(np.mean(speeds)) if speeds else 0.0
 
-            # Normalise sur [0, 1]
-            tension_val = min(1.0, avg_speed / 0.5)
+            # Guard : toutes les particules épinglées
+            if not speeds:
+                tensions.append(TensionZone(
+                    zone_name=zone_name,
+                    tension_level="none",
+                    tension_value=0.0,
+                    recommendation=None,
+                ))
+                continue
+
+            avg_speed   = float(np.mean(speeds))
+            tension_val = min(1.0, max(0.0, avg_speed / 0.5))
 
             if tension_val < 0.3:
                 level = "low"
@@ -568,7 +586,14 @@ class MassSpringEngine:
                 recommendation=rec,
             ))
 
-        return tensions
+        return tensions if tensions else [
+            TensionZone(
+                zone_name="body",
+                tension_level="low",
+                tension_value=0.0,
+                recommendation=None,
+            )
+        ]
 
     @staticmethod
     def _compute_fit_score(tensions: list[TensionZone]) -> float:
