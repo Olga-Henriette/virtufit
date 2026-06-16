@@ -383,11 +383,10 @@ def build_avatar_proxy(avatar: AvatarSimData) -> AvatarProxy:
 
 
 # Moteur de collision
-
 class CollisionEngine:
     """
     Détecte et résout les collisions entre les particules du vêtement
-    et les capsules de l'avatar proxy.
+    et les capsules de l'avatar de manière 100% vectorisée via NumPy.
     """
 
     def __init__(self) -> None:
@@ -400,21 +399,6 @@ class CollisionEngine:
         friction:     float = FRICTION_DYNAMIC,
         iterations:   int   = 3,
     ) -> int:
-        """
-        Résout les collisions entre le tissu et l'avatar.
-
-        Effectue plusieurs passes d'itération pour stabiliser
-        les contraintes de contact.
-
-        Args:
-            particles    : Liste de particules du maillage textile.
-            avatar_proxy : Proxy capsule de l'avatar.
-            friction     : Coefficient de friction textile/peau.
-            iterations   : Nombre de passes de résolution.
-
-        Returns:
-            Nombre total de collisions résolues.
-        """
         total_resolved = 0
 
         for _ in range(iterations):
@@ -431,127 +415,159 @@ class CollisionEngine:
         avatar_proxy: AvatarProxy,
         friction:     float,
     ) -> int:
-        """Effectue une passe unique de résolution de collisions."""
-        resolved = 0
+        """Effectue une passe unique de résolution de collisions matricielle."""
+        n_particles = len(particles)
+        if n_particles == 0 or not avatar_proxy.capsules:
+            return 0
 
-        for particle in particles:
-            if particle.pinned:
-                continue
+        # 1. Extraction des matrices d'état des particules
+        positions = np.array([p.position for p in particles], dtype=np.float32)  # (N, 3)
+        velocities = np.array([p.velocity for p in particles], dtype=np.float32) # (N, 3)
+        pinned = np.array([p.pinned for p in particles], dtype=bool)             # (N,)
 
-            # Test rapide : la particule est-elle dans l'AABB globale ?
-            if not avatar_proxy.global_aabb.expand(
-                COLLISION_MARGIN
-            ).contains_point(particle.position):
-                continue
+        # 2. Extraction des géométries des capsules
+        capsules = avatar_proxy.capsules
+        n_capsules = len(capsules)
+        
+        c_p1 = np.array([c.p1 for c in capsules], dtype=np.float32)        # (C, 3)
+        c_p2 = np.array([c.p2 for c in capsules], dtype=np.float32)        # (C, 3)
+        c_radius = np.array([c.radius for c in capsules], dtype=np.float32) # (C,)
+        
+        c_ab = c_p2 - c_p1                                                 # (C, 3)
+        c_len_sq = np.sum(c_ab ** 2, axis=1, keepdims=True)                # (C, 1)
+        c_len_sq = np.where(c_len_sq < 1e-10, 1e-10, c_len_sq)             # Évite division par zéro
 
-            # Requête sur l'arbre AABB → capsules candidates
-            candidates = avatar_proxy.tree.query_capsules(particle.position)
+        # 3. Pré-filtrage global AABB
+        margin_threshold = COLLISION_MARGIN
+        global_aabb = avatar_proxy.global_aabb
+        in_global_aabb = (
+            (positions[:, 0] >= global_aabb.min_pt[0] - margin_threshold) & (positions[:, 0] <= global_aabb.max_pt[0] + margin_threshold) &
+            (positions[:, 1] >= global_aabb.min_pt[1] - margin_threshold) & (positions[:, 1] <= global_aabb.max_pt[1] + margin_threshold) &
+            (positions[:, 2] >= global_aabb.min_pt[2] - margin_threshold) & (positions[:, 2] <= global_aabb.max_pt[2] + margin_threshold)
+        )
+        
+        valid_indices = np.where(in_global_aabb & (~pinned))[0]
+        if len(valid_indices) == 0:
+            return 0
 
-            for capsule in candidates:
-                if self._resolve_particle(particle, capsule, friction):
-                    resolved += 1
+        # Sous-sélection des particules actives
+        pos_v = positions[valid_indices]  # (V, 3)
+        vel_v = velocities[valid_indices] # (V, 3)
+        
+        # 4. Projection vectorielle de TOUTES les particules valides sur TOUTES les capsules
+        # Extension des dimensions pour le broadcasting : Particules (V, 1, 3) et Capsules (1, C, 3)
+        pos_expanded = pos_v[:, np.newaxis, :]  # (V, 1, 3)
+        p1_expanded = c_p1[np.newaxis, :, :]    # (1, C, 3)
+        ab_expanded = c_ab[np.newaxis, :, :]    # (1, C, 3)
+        
+        # Calcul du paramètre t de projection (V, C)
+        t = np.sum((pos_expanded - p1_expanded) * ab_expanded, axis=2) / c_len_sq.T
+        t = np.clip(t, 0.0, 1.0)                # Clamping sur le segment [0, 1]
+        
+        # Points les plus proches calculés simultanément (V, C, 3)
+        closest_points = p1_expanded + t[:, :, np.newaxis] * ab_expanded
+        
+        # Vecteurs delta et distances (V, C)
+        deltas = pos_expanded - closest_points
+        distances = np.linalg.norm(deltas, axis=2)
+        
+        # Seuils de pénétration pour chaque couple particule/capsule (1, C)
+        thresholds = c_radius[np.newaxis, :] + margin_threshold
+        
+        # Masque des collisions effectives (V, C)
+        collisions = distances < thresholds
+        
+        # Trouver la capsule qui a la pénétration maximale pour chaque particule (V,)
+        penetrations = thresholds - distances
+        penetrations = np.where(collisions, penetrations, -1.0)
+        max_capsule_indices = np.argmax(penetrations, axis=1)
+        
+        # Filtrage des particules qui intersectent réellement au moins une capsule
+        has_collision = np.any(collisions, axis=1)
+        if not np.any(has_collision):
+            return 0
+            
+        collision_indices = np.where(has_collision)[0]
+        
+        # 5. Résolution géométrique sur les particules en collision
+        resolved_count = 0
+        for idx_in_v in collision_indices:
+            p_idx = valid_indices[idx_in_v]
+            c_idx = max_capsule_indices[idx_in_v]
+            
+            dist = distances[idx_in_v, c_idx]
+            delta = deltas[idx_in_v, c_idx]
+            threshold = thresholds[0, c_idx]
+            
+            if dist < 1e-6:
+                normal = np.array([0.0, 0.0, 1.0], dtype=np.float32)
+                dist = 0.0
+            else:
+                normal = delta / dist
+                
+            # Éjection de position
+            penetration = threshold - dist
+            positions[p_idx] += normal * penetration
+            
+            # Correction de la vitesse avec rebond et friction
+            vel = velocities[p_idx]
+            vel_normal = float(np.dot(vel, normal))
+            
+            if vel_normal < 0:
+                vel -= (1.0 + RESTITUTION_COEFF) * vel_normal * normal
+                vel_tangential = vel - np.dot(vel, normal) * normal
+                vel -= friction * vel_tangential
+                velocities[p_idx] = vel
+                
+            resolved_count += 1
 
-        return resolved
+        # 6. Réinjection finale dans les objets Python originaux
+        if resolved_count > 0:
+            for idx in valid_indices[collision_indices]:
+                particles[idx].position = positions[idx]
+                particles[idx].velocity = velocities[idx]
 
-    @staticmethod
-    def _resolve_particle(
-        particle: object,     # Particle
-        capsule:  Capsule,
-        friction: float,
-    ) -> bool:
-        """
-        Résout la collision entre une particule et une capsule.
-
-        Algorithme :
-        1. Calcule le point le plus proche sur l'axe de la capsule
-        2. Mesure la distance signée (négatif = pénétration)
-        3. Si pénétration → repousse la particule sur la surface
-        4. Applique friction tangentielle
-
-        Returns:
-            True si une collision a été résolue.
-        """
-        closest = capsule.closest_point_on_segment(particle.position)
-        delta   = particle.position - closest
-        dist    = float(np.linalg.norm(delta))
-
-        threshold = capsule.radius + COLLISION_MARGIN
-
-        # Si la particule est en dehors de la zone d'influence, rien à faire
-        if dist >= threshold:
-            return False
-
-        # Garde-fou si la particule est pile sur l'axe central (dist == 0)
-        if dist < 1e-6:
-            # Génère une direction arbitraire orthogonale (ex: vers l'avant en Z) pour l'expulser
-            normal = np.array([0.0, 0.0, 1.0])
-            dist = 0.0
-        else:
-            # Direction de séparation normale
-            normal = delta / dist
-
-        # Correction de position
-        penetration      = threshold - dist
-        particle.position = particle.position + normal * penetration
-
-        # Correction de vitesse
-        vel_normal = float(np.dot(particle.velocity, normal))
-
-        if vel_normal < 0:
-            # Composante normale : rebond minimal
-            particle.velocity -= (1.0 + RESTITUTION_COEFF) * vel_normal * normal
-
-            # Composante tangentielle : friction
-            vel_tangential = particle.velocity - np.dot(
-                particle.velocity, normal
-            ) * normal
-            particle.velocity -= friction * vel_tangential
-
-        return True
+        return resolved_count
 
     def detect_self_collision(
         self,
         particles: list,
         threshold: float = COLLISION_MARGIN,
     ) -> int:
-        """
-        Détecte et résout les auto-collisions du tissu
-        (particules trop proches entre elles).
-
-        Returns:
-            Nombre de paires résolues.
-        """
+        """Détection hautement optimisée des auto-collisions (Tissu <-> Tissu)."""
         resolved = 0
-        n        = len(particles)
+        n = len(particles)
+        if n == 0:
+            return 0
 
-        # Groupes voisins uniquement (O(n) au lieu de O(n²))
+        positions = np.array([p.position for p in particles], dtype=np.float32)
+        pinned = np.array([p.pinned for p in particles], dtype=bool)
+
         step = max(1, n // 50)
 
         for i in range(0, n, step):
             for j in range(i + 1, min(i + step * 3, n)):
-                p1 = particles[i]
-                p2 = particles[j]
-
-                if p1.pinned and p2.pinned:
+                if pinned[i] and pinned[j]:
                     continue
 
-                delta = p1.position - p2.position
-                dist  = float(np.linalg.norm(delta))
+                delta = positions[i] - positions[j]
+                dist = float(np.linalg.norm(delta))
 
-                if dist < threshold and dist > 1e-8:
+                if 1e-8 < dist < threshold:
                     correction = (threshold - dist) * 0.5
-                    direction  = delta / dist
+                    direction = delta / dist
 
-                    if not p1.pinned:
-                        p1.position += direction * correction
-                    if not p2.pinned:
-                        p2.position -= direction * correction
+                    if not pinned[i]:
+                        positions[i] += direction * correction
+                        particles[i].position = positions[i]
+                    if not pinned[j]:
+                        positions[j] -= direction * correction
+                        particles[j].position = positions[j]
 
                     resolved += 1
 
         return resolved
-
-
+    
 @lru_cache(maxsize=8)
 def get_collision_engine() -> CollisionEngine:
     """Retourne l'instance singleton du moteur de collision."""

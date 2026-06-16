@@ -87,20 +87,17 @@ class SimulationCache:
             if entry is None:
                 self._misses += 1
                 return None
-
-            if entry.is_expired:
+            
+            now = time.monotonic()
+            if (now - entry.created_at) > self._ttl:
                 del self._store[cache_key]
                 self._misses += 1
-                logger.debug("Cache MISS (expiré) — key=%s", cache_key[:12])
                 return None
 
-            entry.hits  += 1
-            self._hits  += 1
-            logger.debug(
-                "Cache HIT — key=%s age=%.1fs hits=%d",
-                cache_key[:12], entry.age_seconds, entry.hits,
-            )
+            entry.hits += 1
+            self._hits += 1
             return entry.result
+
 
     def set(self, cache_key: str, result: SimulationResponse) -> None:
         """

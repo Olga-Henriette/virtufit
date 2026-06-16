@@ -282,7 +282,7 @@ class MassSpringEngine:
 
         return springs
 
-    # Pas de simulation
+    # Pas de simulation vectorisé (Haute Performance)
 
     def _step(
         self,
@@ -291,25 +291,90 @@ class MassSpringEngine:
         clothing:  ClothingSimData,
         dt:        float,
     ) -> None:
-        """Effectue un pas de simulation Euler semi-implicite."""
-        # Reset des forces
-        for p in particles:
-            p.force = np.zeros(3)
+        """Effectue un pas de simulation entièrement vectorisé via NumPy."""
+        n_particles = len(particles)
+        if n_particles == 0:
+            return
 
-        # Gravité
-        self._apply_gravity(particles)
+        # 1. Extraction des matrices d'état globales
+        positions = np.array([p.position for p in particles], dtype=np.float32)
+        velocities = np.array([p.velocity for p in particles], dtype=np.float32)
+        masses = np.array([p.mass for p in particles], dtype=np.float32).reshape(-1, 1)
+        pinned = np.array([p.pinned for p in particles], dtype=bool)
 
-        # Forces de ressorts
-        self._apply_spring_forces(particles, springs)
+        # Initialisation des forces globales (N, 3)
+        forces = np.zeros((n_particles, 3), dtype=np.float32)
 
-        # Friction textile
-        self._apply_friction(particles, clothing.fabric.friction_coeff)
+        # 2. Gravité vectorielle
+        forces[~pinned] += GRAVITY * masses[~pinned]
 
-        # Intégration
-        self._integrate(particles, dt, clothing.fabric.damping)
+        # 3. Forces de ressorts (Hooke) ultra-rapides
+        if springs:
+            # Extraction des indices et propriétés des ressorts
+            idx_p1 = np.array([s.p1_idx for s in springs], dtype=np.int32)
+            idx_p2 = np.array([s.p2_idx for s in springs], dtype=np.int32)
+            rest_lengths = np.array([s.rest_length for s in springs], dtype=np.float32).reshape(-1, 1)
+            stiffnesses = np.array([s.stiffness for s in springs], dtype=np.float32).reshape(-1, 1)
 
-        # Contraintes de collision
-        self._detect_collisions(particles)
+            # Calcul des vecteurs de distance entre p1 et p2
+            delta_p = positions[idx_p2] - positions[idx_p1]
+            lengths = np.linalg.norm(delta_p, axis=1, keepdims=True)
+
+            # Évite la division par zéro ou les instabilités numériques
+            valid_mask = (lengths > 1e-6).flatten()
+            if np.any(valid_mask):
+                idx_p1_v = idx_p1[valid_mask]
+                idx_p2_v = idx_p2[valid_mask]
+                delta_v = delta_p[valid_mask]
+                lengths_v = lengths[valid_mask]
+                
+                directions = delta_v / lengths_v
+                extensions = lengths_v - rest_lengths[valid_mask]
+
+                # Sécurité : limitation de l'élongation
+                max_ext = rest_lengths[valid_mask] * 0.5
+                extensions = np.clip(extensions, -max_ext, max_ext)
+
+                force_magnitudes = stiffnesses[valid_mask] * extensions
+                spring_forces = force_magnitudes * directions
+
+                # Accumulation flash des forces sur les bonnes particules
+                np.add.at(forces, idx_p1_v, spring_forces)
+                np.add.at(forces, idx_p2_v, -spring_forces)
+
+        # 4. Friction textile vectorisée
+        speeds = np.linalg.norm(velocities, axis=1, keepdims=True)
+        friction_mask = (speeds > 1e-6).flatten() & (~pinned)
+        forces[friction_mask] -= clothing.fabric.friction_coeff * velocities[friction_mask]
+
+        # 5. Intégration Euler semi-implicite
+        MAX_VELOCITY = 15.0
+        damping = clothing.fabric.damping
+
+        # Mise à jour des vitesses des particules non épinglées
+        velocities[~pinned] += (forces[~pinned] / masses[~pinned]) * dt
+        velocities[~pinned] *= (1.0 - damping)
+
+        # Garde-fou anti-explosion (Vitesse max)
+        new_speeds = np.linalg.norm(velocities, axis=1, keepdims=True)
+        over_speed_mask = (new_speeds > MAX_VELOCITY).flatten() & (~pinned)
+        if np.any(over_speed_mask):
+            velocities[over_speed_mask] = (velocities[over_speed_mask] / new_speeds[over_speed_mask]) * MAX_VELOCITY
+
+        # Mise à jour des positions
+        positions[~pinned] += velocities[~pinned] * dt
+
+        # 6. Contrainte de collision simplifiée (Sol y < 0)
+        floor_mask = positions[:, 1] < 0.0
+        if np.any(floor_mask):
+            positions[floor_mask, 1] = 0.0
+            velocities[floor_mask, 1] = np.maximum(0.0, velocities[floor_mask, 1])
+
+        # 7. Réinjection des résultats dans les objets de destination
+        for i, p in enumerate(particles):
+            p.position = positions[i]
+            p.velocity = velocities[i]
+            p.force = forces[i]
 
     def _apply_gravity(self, particles: list[Particle]) -> None:
         """Applique la force gravitationnelle à chaque particule libre."""
