@@ -12,6 +12,7 @@ import { CatalogueModule } from './modules/catalogue/catalogue.module';
 import { TryOnModule } from './modules/tryon/tryon.module';
 import { VendorModule } from './modules/vendor/vendor.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
+import { AuthModule } from './modules/auth/auth.module';
 
 @Module({
   imports: [
@@ -62,6 +63,7 @@ import { AnalyticsModule } from './modules/analytics/analytics.module';
     }),
 
     HealthModule,
+    AuthModule,
     MeasurementsModule,
     AvatarModule,
     SessionModule,
