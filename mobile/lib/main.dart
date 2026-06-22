@@ -10,6 +10,8 @@ import 'features/auth/data/repositories/auth_repository.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
 import 'features/avatar/data/repositories/measurements_repository.dart';
 import 'features/avatar/presentation/bloc/measurements_bloc.dart';
+import 'features/avatar/data/repositories/avatar_repository.dart';
+import 'features/avatar/presentation/bloc/morphotype_bloc.dart';
 
 final _getIt = GetIt.instance;
 
@@ -55,9 +57,31 @@ Future<void> _setupDI() async {
   _getIt.registerSingleton<MeasurementsRepository>(
     MeasurementsRepository(apiClient: _getIt<ApiClient>()),
   );
+  _getIt.registerSingleton<AvatarRepository>(
+    AvatarRepository(apiClient: _getIt<ApiClient>()),
+  );
 
   _getIt.registerFactory<MeasurementsBloc>(
     () => MeasurementsBloc(repository: _getIt<MeasurementsRepository>()),
+  );
+  _getIt.registerFactory<MorphotypeBloc>(
+    () => MorphotypeBloc(_getIt<AvatarRepository>()),
+  );
+
+  _getIt.registerSingleton<MeasurementsRepository>(
+    MeasurementsRepository(apiClient: _getIt<ApiClient>()),
+  );
+
+  _getIt.registerFactory<MeasurementsBloc>(
+    () => MeasurementsBloc(repository: _getIt<MeasurementsRepository>()),
+  );
+
+  _getIt.registerSingleton<AvatarRepository>(
+    AvatarRepository(apiClient: _getIt<ApiClient>()),
+  );
+
+  _getIt.registerFactory<MorphotypeBloc>(
+    () => MorphotypeBloc(_getIt<AvatarRepository>()),
   );
 }
 

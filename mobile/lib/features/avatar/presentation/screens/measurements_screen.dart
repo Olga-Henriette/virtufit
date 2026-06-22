@@ -123,15 +123,18 @@ class _MeasurementsScreenState extends State<MeasurementsScreen> {
                 behavior:        SnackBarBehavior.floating,
               ));
           }
-          if (state.status == MeasurementsStatus.success) {
+          if (state.status == MeasurementsStatus.success && state.active != null) {
             ScaffoldMessenger.of(context)
               ..hideCurrentSnackBar()
-              ..showSnackBar(SnackBar(
-                content: const Text('Mensurations enregistrées ✓'),
+              ..showSnackBar(const SnackBar(
+                content: Text('Mensurations enregistrées ✓'),
                 backgroundColor: Colors.green,
                 behavior: SnackBarBehavior.floating,
               ));
-            context.push('/avatar/morphotype');
+            context.push('/avatar/morphotype', extra: {
+              'heightCm': state.active!.heightCm,
+              'weightKg': state.active!.weightKg,
+            });
           }
           if (state.active != null) {
             _fillFromExisting(state.active!);
