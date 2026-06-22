@@ -6,7 +6,12 @@ class ApiClient {
   late final Dio _dio;
   final SecureStorage _storage;
 
-  static const _baseUrl = 'http://192.168.0.135:3000/api/v1';
+  static String get _baseUrl {
+    if (kDebugMode) {
+      return 'http://192.168.0.135:3000/api/v1'; 
+    }
+    return 'https://api.virtufit.com/api/v1'; 
+  }
 
   ApiClient({required this._storage}) {
     _dio = Dio(BaseOptions(
@@ -41,9 +46,9 @@ class ApiClient {
 
 class _AuthInterceptor extends Interceptor {
   final SecureStorage _storage;
-  final Dio           _dio;
+  final Dio           _mainDio;
 
-  _AuthInterceptor(this._storage, this._dio);
+  _AuthInterceptor(this._storage, this._mainDio);
 
   @override
   Future<void> onRequest(
@@ -62,17 +67,28 @@ class _AuthInterceptor extends Interceptor {
     DioException            err,
     ErrorInterceptorHandler handler,
   ) async {
-    if (err.response?.statusCode == 401) {
+    final requestPath = err.requestOptions.path;
+
+    // Si l'erreur 401 vient de la route login ou refresh, on ne tente pas de refresh token
+    if (err.response?.statusCode == 401 && 
+        !requestPath.contains('/auth/login') && 
+        !requestPath.contains('/auth/refresh')) {
+      
+      // Crée une instance isolée pour éviter de boucler sur l'intercepteur
+      final refreshDio = Dio(BaseOptions(baseUrl: _mainDio.options.baseUrl));
+      
       try {
         final refreshToken = await _storage.getRefreshToken();
         if (refreshToken == null) {
           handler.next(err);
           return;
         }
-        final response = await _dio.post(
+
+        final response = await refreshDio.post(
           '/auth/refresh',
           data: {'refreshToken': refreshToken},
         );
+
         final newAccess  = response.data['data']['accessToken']  as String;
         final newRefresh = response.data['data']['refreshToken'] as String;
         final userId     = await _storage.getUserId() ?? '';
@@ -83,14 +99,19 @@ class _AuthInterceptor extends Interceptor {
           userId:       userId,
         );
 
+        // Rejoue la requête initiale avec le nouveau token
         err.requestOptions.headers['Authorization'] = 'Bearer $newAccess';
-        final retried = await _dio.fetch(err.requestOptions);
+        final retried = await _mainDio.fetch(err.requestOptions);
         handler.resolve(retried);
         return;
       } catch (_) {
         await _storage.clearAll();
+      } finally {
+        refreshDio.close();
       }
     }
+    
+    // Transmet l'erreur normalement à l'application
     handler.next(err);
   }
 }

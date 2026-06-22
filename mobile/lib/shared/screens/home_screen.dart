@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_event.dart';
 
@@ -183,7 +184,7 @@ class _HomeTab extends StatelessWidget {
                 icon:    Icons.person_add_outlined,
                 label:   'Créer mon avatar',
                 color:   theme.colorScheme.primaryContainer,
-                onTap:   () {},
+                onTap:   () => context.push('/avatar/measurements'),
               ),
               _QuickActionCard(
                 icon:    Icons.search_outlined,

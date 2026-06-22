@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:get_it/get_it.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_bloc.dart';
 import '../../features/auth/presentation/bloc/auth_state.dart';
 import '../../features/auth/presentation/screens/login_screen.dart';
 import '../../features/auth/presentation/screens/register_screen.dart';
 import '../../shared/screens/splash_screen.dart';
 import '../../shared/screens/home_screen.dart';
+import '../../features/avatar/presentation/bloc/measurements_bloc.dart';
+import '../../features/avatar/presentation/screens/measurements_screen.dart';
 
 GoRouter buildRouter(AuthBloc authBloc) {
   return GoRouter(
@@ -55,6 +59,13 @@ GoRouter buildRouter(AuthBloc authBloc) {
       GoRoute(
         path:    '/home',
         builder: (context, state) => const HomeScreen(),
+      ),
+      GoRoute(
+        path:    '/avatar/measurements',
+        builder: (context, state) => BlocProvider(
+          create: (_) => GetIt.instance<MeasurementsBloc>(),
+          child:  const MeasurementsScreen(),
+        ),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

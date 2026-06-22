@@ -38,8 +38,9 @@ export class MeasurementsController {
   async create(
     @Param('userId', ParseUUIDPipe) userId: string,
     @Body() dto: CreateMeasurementDto,
-  ): Promise<MeasurementResponseDto> {
-    return this.measurementsService.create(userId, dto);
+  ): Promise<{ data: MeasurementResponseDto }> {
+    const measurement = await this.measurementsService.create(userId, dto);
+    return { data: measurement };
   }
 
   @Get('users/:userId/active')

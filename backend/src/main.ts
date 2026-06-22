@@ -42,9 +42,12 @@ async function bootstrap(): Promise<void> {
   const document = SwaggerModule.createDocument(app, swaggerConfig);
   SwaggerModule.setup('docs', app, document);
 
-  await app.listen(port);
-  console.log(`VirtuFit API démarrée sur http://localhost:${port}/${prefix}`);
-  console.log(`Swagger disponible sur http://localhost:${port}/docs`);
+  await app.listen(port, '0.0.0.0');
+
+  console.log(`VirtuFit API démarrée sur le réseau local et accessible.`);
+  console.log(`Local    : http://localhost:${port}/${prefix}`);
+  console.log(`Réseau   : http://192.168.0.117:${port}/${prefix}`);
+  console.log(`Swagger  : http://localhost:${port}/docs`);
 }
 
 void bootstrap();

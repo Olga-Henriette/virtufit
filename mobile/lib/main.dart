@@ -8,6 +8,8 @@ import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 import 'features/auth/data/repositories/auth_repository.dart';
 import 'features/auth/presentation/bloc/auth_bloc.dart';
+import 'features/avatar/data/repositories/measurements_repository.dart';
+import 'features/avatar/presentation/bloc/measurements_bloc.dart';
 
 final _getIt = GetIt.instance;
 
@@ -48,6 +50,14 @@ Future<void> _setupDI() async {
 
   _getIt.registerFactory<AuthBloc>(
     () => AuthBloc(authRepository: _getIt<AuthRepository>()),
+  );
+
+  _getIt.registerSingleton<MeasurementsRepository>(
+    MeasurementsRepository(apiClient: _getIt<ApiClient>()),
+  );
+
+  _getIt.registerFactory<MeasurementsBloc>(
+    () => MeasurementsBloc(repository: _getIt<MeasurementsRepository>()),
   );
 }
 
