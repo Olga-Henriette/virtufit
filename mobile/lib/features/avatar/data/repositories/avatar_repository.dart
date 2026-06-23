@@ -1,6 +1,9 @@
+import 'dart:io';
+import 'package:dio/dio.dart';
 import '../../../../core/network/api_client.dart';
 import '../models/avatar_model.dart';
 import '../models/morphotype_model.dart';
+import '../models/personalization_model.dart';
 
 class AvatarRepository {
   final ApiClient _apiClient;
@@ -34,6 +37,29 @@ class AvatarRepository {
     } catch (_) {
       return null;
     }
+  }
+
+  // Uploader une photo de personnalisation
+  Future<PersonalizationModel> uploadPersonalizationPhoto({
+    required String userId,
+    required File   photoFile,
+  }) async {
+    final fileName = photoFile.path.split('/').last;
+    final formData = FormData.fromMap({
+      'photo': await MultipartFile.fromFile(
+        photoFile.path,
+        filename: fileName,
+      ),
+    });
+
+    final response = await _apiClient.postForm(
+      '/avatars/personalization/users/$userId/photo',
+      data: formData,
+    );
+
+    return PersonalizationModel.fromJson(
+      response.data as Map<String, dynamic>,
+    );
   }
 
   // Historique des avatars

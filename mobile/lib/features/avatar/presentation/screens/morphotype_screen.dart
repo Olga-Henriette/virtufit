@@ -75,7 +75,7 @@ class _MorphotypeScreenState extends State<MorphotypeScreen> {
                 backgroundColor: Colors.green,
                 behavior: SnackBarBehavior.floating,
               ));
-            context.go('/home');
+            context.go('/avatar/personalization');
           }
         },
         builder: (context, state) {

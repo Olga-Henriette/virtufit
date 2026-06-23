@@ -42,6 +42,9 @@ class ApiClient {
       _dio.patch(path, data: data);
 
   Future<Response> delete(String path) => _dio.delete(path);
+
+  Future<Response> postForm(String path, {required FormData data}) =>
+      _dio.post(path, data: data);
 }
 
 class _AuthInterceptor extends Interceptor {
