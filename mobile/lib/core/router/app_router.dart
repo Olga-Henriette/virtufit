@@ -14,6 +14,8 @@ import '../../shared/screens/splash_screen.dart';
 import '../../shared/screens/home_screen.dart';
 import '../../features/avatar/presentation/bloc/personalization_bloc.dart';
 import '../../features/avatar/presentation/screens/personalization_screen.dart';
+import '../../features/avatar/presentation/bloc/avatar_viewer_bloc.dart';
+import '../../features/avatar/presentation/screens/avatar_viewer_screen.dart';
 
 GoRouter buildRouter(AuthBloc authBloc) {
   return GoRouter(
@@ -81,6 +83,13 @@ GoRouter buildRouter(AuthBloc authBloc) {
         builder: (context, state) => BlocProvider(
           create: (_) => GetIt.instance<PersonalizationBloc>(),
           child:  const PersonalizationScreen(),
+        ),
+      ),
+      GoRoute(
+        path:    '/avatar/viewer',
+        builder: (context, state) => BlocProvider(
+          create: (_) => GetIt.instance<AvatarViewerBloc>(),
+          child:  const AvatarViewerScreen(),
         ),
       ),
     ],

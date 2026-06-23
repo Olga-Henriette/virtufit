@@ -13,6 +13,7 @@ import 'features/avatar/presentation/bloc/measurements_bloc.dart';
 import 'features/avatar/data/repositories/avatar_repository.dart';
 import 'features/avatar/presentation/bloc/morphotype_bloc.dart';
 import 'features/avatar/presentation/bloc/personalization_bloc.dart';
+import 'features/avatar/presentation/bloc/avatar_viewer_bloc.dart';
 
 final _getIt = GetIt.instance;
 
@@ -73,6 +74,10 @@ Future<void> _setupDI() async {
 
   _getIt.registerFactory<PersonalizationBloc>(
     () => PersonalizationBloc(_getIt<AvatarRepository>()),
+  );
+
+  _getIt.registerFactory<AvatarViewerBloc>(
+    () => AvatarViewerBloc(_getIt<AvatarRepository>()),
   );
 }
 

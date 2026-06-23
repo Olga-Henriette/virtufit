@@ -63,11 +63,28 @@ class _HomeScreenState extends State<HomeScreen> {
       case 0:
         return _HomeTab(user: user);
       case 1:
-        return _PlaceholderTab(
-          icon:    Icons.person,
-          title:   'Mon Avatar',
-          subtitle: 'Construisez votre avatar 3D',
-          color:   theme.colorScheme.primary,
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.person, size: 64,
+                  color: theme.colorScheme.primary.withValues(alpha: 0.5)),
+              const SizedBox(height: 16),
+              Text('Mon Avatar', style: theme.textTheme.titleLarge),
+              const SizedBox(height: 8),
+              Text(
+                'Consultez ou créez votre avatar 3D',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 20),
+              FilledButton(
+                onPressed: () => context.push('/avatar/viewer'),
+                child: const Text('Voir mon avatar'),
+              ),
+            ],
+          ),
         );
       case 2:
         return _PlaceholderTab(
