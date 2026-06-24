@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:get_it/get_it.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/date_symbol_data_local.dart';
 import 'core/network/api_client.dart';
 import 'core/storage/secure_storage.dart';
 import 'core/theme/app_theme.dart';
@@ -19,11 +20,13 @@ import 'features/tryon/presentation/bloc/catalogue_bloc.dart';
 import 'features/tryon/data/repositories/tryon_repository.dart';
 import 'features/tryon/presentation/bloc/tryon_bloc.dart';
 import 'features/tryon/presentation/bloc/fit_analysis_bloc.dart';
+import 'features/tryon/presentation/bloc/tryon_history_bloc.dart';
 
 final _getIt = GetIt.instance;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('fr_FR');
 
   // Capture les erreurs Flutter non gérées
   FlutterError.onError = (details) {
@@ -35,7 +38,7 @@ void main() async {
     await _setupDI();
   } catch (e, st) {
     debugPrint('DI setup error: $e\n$st');
-  }
+  }  
 
   runApp(const VirtuFitApp());
 }
@@ -101,6 +104,10 @@ Future<void> _setupDI() async {
 
   _getIt.registerFactory<FitAnalysisBloc>(
     () => FitAnalysisBloc(_getIt<TryOnRepository>()),
+  );
+
+  _getIt.registerFactory<TryOnHistoryBloc>(
+    () => TryOnHistoryBloc(_getIt<TryOnRepository>()),
   );
 }
 

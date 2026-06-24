@@ -23,6 +23,8 @@ import '../../features/tryon/presentation/bloc/tryon_bloc.dart';
 import '../../features/tryon/presentation/screens/tryon_start_screen.dart';
 import '../../features/tryon/presentation/bloc/fit_analysis_bloc.dart';
 import '../../features/tryon/presentation/screens/fit_analysis_screen.dart';
+import '../../features/tryon/presentation/bloc/tryon_history_bloc.dart';
+import '../../features/tryon/presentation/screens/tryon_history_screen.dart';
 
 GoRouter buildRouter(AuthBloc authBloc) {
   return GoRouter(
@@ -130,6 +132,13 @@ GoRouter buildRouter(AuthBloc authBloc) {
             ),
           );
         },
+      ),
+      GoRoute(
+        path:    '/tryon/history',
+        builder: (context, state) => BlocProvider(
+          create: (_) => GetIt.instance<TryOnHistoryBloc>(),
+          child:  const TryOnHistoryScreen(),
+        ),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

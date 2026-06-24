@@ -230,7 +230,7 @@ class _HomeTab extends StatelessWidget {
                 icon:    Icons.history_outlined,
                 label:   'Mes essayages',
                 color:   theme.colorScheme.tertiaryContainer,
-                onTap:   () {},
+                onTap:   () => context.push('/tryon/history'),
               ),
               _QuickActionCard(
                 icon:    Icons.analytics_outlined,
