@@ -21,6 +21,8 @@ import '../../features/tryon/presentation/screens/catalogue_screen.dart';
 import '../../features/tryon/data/models/clothing_model.dart';
 import '../../features/tryon/presentation/bloc/tryon_bloc.dart';
 import '../../features/tryon/presentation/screens/tryon_start_screen.dart';
+import '../../features/tryon/presentation/bloc/fit_analysis_bloc.dart';
+import '../../features/tryon/presentation/screens/fit_analysis_screen.dart';
 
 GoRouter buildRouter(AuthBloc authBloc) {
   return GoRouter(
@@ -113,6 +115,18 @@ GoRouter buildRouter(AuthBloc authBloc) {
             child: TryOnStartScreen(
               clothingId: extra['clothingId'] as String,
               clothing:   extra['clothing']   as ClothingModel,
+            ),
+          );
+        },
+      ),
+      GoRoute(
+        path:    '/tryon/fit-analysis',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return BlocProvider(
+            create: (_) => GetIt.instance<FitAnalysisBloc>(),
+            child: FitAnalysisScreen(
+              sessionId: extra['sessionId'] as String,
             ),
           );
         },

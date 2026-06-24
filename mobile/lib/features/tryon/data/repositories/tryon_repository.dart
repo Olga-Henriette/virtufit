@@ -1,5 +1,6 @@
 import '../../../../core/network/api_client.dart';
 import '../models/tryon_model.dart';
+import '../models/fit_report_model.dart';
 
 class TryOnRepository {
   final ApiClient _apiClient;
@@ -44,5 +45,27 @@ class TryOnRepository {
     return list
         .map((e) => TryOnSessionModel.fromJson(e as Map<String, dynamic>))
         .toList();
+  }
+
+  // Rapport d'ajustement détaillé
+  Future<FitReportModel> getFitReport(String sessionId) async {
+    final response = await _apiClient.get('/fit-report/sessions/$sessionId');
+    return FitReportModel.fromJson(response.data as Map<String, dynamic>);
+  }
+
+  // Comparer plusieurs tailles
+  Future<Map<String, FitReportModel>> compareSizes({
+    required String sessionId,
+    required List<String> sizes,
+  }) async {
+    final response = await _apiClient.post(
+      '/fit-report/sessions/$sessionId/compare-sizes',
+      data: {'sizes': sizes},
+    );
+    final map = response.data as Map<String, dynamic>;
+    return map.map(
+      (key, value) =>
+          MapEntry(key, FitReportModel.fromJson(value as Map<String, dynamic>)),
+    );
   }
 }

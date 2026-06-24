@@ -18,6 +18,7 @@ import 'features/tryon/data/repositories/catalogue_repository.dart';
 import 'features/tryon/presentation/bloc/catalogue_bloc.dart';
 import 'features/tryon/data/repositories/tryon_repository.dart';
 import 'features/tryon/presentation/bloc/tryon_bloc.dart';
+import 'features/tryon/presentation/bloc/fit_analysis_bloc.dart';
 
 final _getIt = GetIt.instance;
 
@@ -96,6 +97,10 @@ Future<void> _setupDI() async {
   );
   _getIt.registerFactory<TryOnBloc>(
     () => TryOnBloc(_getIt<TryOnRepository>()),
+  );
+
+  _getIt.registerFactory<FitAnalysisBloc>(
+    () => FitAnalysisBloc(_getIt<TryOnRepository>()),
   );
 }
 
