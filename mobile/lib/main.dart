@@ -14,6 +14,8 @@ import 'features/avatar/data/repositories/avatar_repository.dart';
 import 'features/avatar/presentation/bloc/morphotype_bloc.dart';
 import 'features/avatar/presentation/bloc/personalization_bloc.dart';
 import 'features/avatar/presentation/bloc/avatar_viewer_bloc.dart';
+import 'features/tryon/data/repositories/catalogue_repository.dart';
+import 'features/tryon/presentation/bloc/catalogue_bloc.dart';
 
 final _getIt = GetIt.instance;
 
@@ -78,6 +80,13 @@ Future<void> _setupDI() async {
 
   _getIt.registerFactory<AvatarViewerBloc>(
     () => AvatarViewerBloc(_getIt<AvatarRepository>()),
+  );
+
+  _getIt.registerSingleton<CatalogueRepository>(
+    CatalogueRepository(apiClient: _getIt<ApiClient>()),
+  );
+  _getIt.registerFactory<CatalogueBloc>(
+    () => CatalogueBloc(_getIt<CatalogueRepository>()),
   );
 }
 

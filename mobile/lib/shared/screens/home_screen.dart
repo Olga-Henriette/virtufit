@@ -87,11 +87,28 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       case 2:
-        return _PlaceholderTab(
-          icon:    Icons.checkroom,
-          title:   'Essayage Virtuel',
-          subtitle: 'Essayez des vêtements en 3D',
-          color:   theme.colorScheme.secondary,
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.checkroom, size: 64,
+                  color: theme.colorScheme.secondary.withValues(alpha: 0.5)),
+              const SizedBox(height: 16),
+              Text('Essayage Virtuel', style: theme.textTheme.titleLarge),
+              const SizedBox(height: 8),
+              Text(
+                'Parcourez le catalogue et essayez des vêtements',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 20),
+              FilledButton(
+                onPressed: () => context.push('/tryon/catalogue'),
+                child: const Text('Voir le catalogue'),
+              ),
+            ],
+          ),
         );
       case 3:
         return _PlaceholderTab(
@@ -207,7 +224,7 @@ class _HomeTab extends StatelessWidget {
                 icon:    Icons.search_outlined,
                 label:   'Parcourir le catalogue',
                 color:   theme.colorScheme.secondaryContainer,
-                onTap:   () {},
+                onTap:   () => context.push('/tryon/catalogue'),
               ),
               _QuickActionCard(
                 icon:    Icons.history_outlined,

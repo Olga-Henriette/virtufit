@@ -16,6 +16,8 @@ import '../../features/avatar/presentation/bloc/personalization_bloc.dart';
 import '../../features/avatar/presentation/screens/personalization_screen.dart';
 import '../../features/avatar/presentation/bloc/avatar_viewer_bloc.dart';
 import '../../features/avatar/presentation/screens/avatar_viewer_screen.dart';
+import '../../features/tryon/presentation/bloc/catalogue_bloc.dart';
+import '../../features/tryon/presentation/screens/catalogue_screen.dart';
 
 GoRouter buildRouter(AuthBloc authBloc) {
   return GoRouter(
@@ -90,6 +92,13 @@ GoRouter buildRouter(AuthBloc authBloc) {
         builder: (context, state) => BlocProvider(
           create: (_) => GetIt.instance<AvatarViewerBloc>(),
           child:  const AvatarViewerScreen(),
+        ),
+      ),
+      GoRoute(
+        path:    '/tryon/catalogue',
+        builder: (context, state) => BlocProvider(
+          create: (_) => GetIt.instance<CatalogueBloc>(),
+          child:  const CatalogueScreen(),
         ),
       ),
     ],
