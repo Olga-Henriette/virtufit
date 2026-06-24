@@ -18,6 +18,9 @@ import '../../features/avatar/presentation/bloc/avatar_viewer_bloc.dart';
 import '../../features/avatar/presentation/screens/avatar_viewer_screen.dart';
 import '../../features/tryon/presentation/bloc/catalogue_bloc.dart';
 import '../../features/tryon/presentation/screens/catalogue_screen.dart';
+import '../../features/tryon/data/models/clothing_model.dart';
+import '../../features/tryon/presentation/bloc/tryon_bloc.dart';
+import '../../features/tryon/presentation/screens/tryon_start_screen.dart';
 
 GoRouter buildRouter(AuthBloc authBloc) {
   return GoRouter(
@@ -100,6 +103,19 @@ GoRouter buildRouter(AuthBloc authBloc) {
           create: (_) => GetIt.instance<CatalogueBloc>(),
           child:  const CatalogueScreen(),
         ),
+      ),
+      GoRoute(
+        path:    '/tryon/start',
+        builder: (context, state) {
+          final extra = state.extra as Map<String, dynamic>;
+          return BlocProvider(
+            create: (_) => GetIt.instance<TryOnBloc>(),
+            child: TryOnStartScreen(
+              clothingId: extra['clothingId'] as String,
+              clothing:   extra['clothing']   as ClothingModel,
+            ),
+          );
+        },
       ),
     ],
     errorBuilder: (context, state) => Scaffold(
