@@ -21,6 +21,10 @@ import 'features/tryon/data/repositories/tryon_repository.dart';
 import 'features/tryon/presentation/bloc/tryon_bloc.dart';
 import 'features/tryon/presentation/bloc/fit_analysis_bloc.dart';
 import 'features/tryon/presentation/bloc/tryon_history_bloc.dart';
+import 'features/vendor/data/repositories/vendor_repository.dart';
+import 'features/vendor/presentation/bloc/vendor_dashboard_bloc.dart';
+import 'features/vendor/presentation/bloc/catalog_management_bloc.dart';
+import 'features/vendor/presentation/bloc/clothing_upload_bloc.dart';
 
 final _getIt = GetIt.instance;
 
@@ -108,6 +112,19 @@ Future<void> _setupDI() async {
 
   _getIt.registerFactory<TryOnHistoryBloc>(
     () => TryOnHistoryBloc(_getIt<TryOnRepository>()),
+  );
+
+  _getIt.registerSingleton<VendorRepository>(
+    VendorRepository(apiClient: _getIt<ApiClient>()),
+  );
+  _getIt.registerFactory<VendorDashboardBloc>(
+    () => VendorDashboardBloc(_getIt<VendorRepository>()),
+  );
+  _getIt.registerFactory<CatalogManagementBloc>(
+    () => CatalogManagementBloc(_getIt<VendorRepository>()),
+  );
+  _getIt.registerFactory<ClothingUploadBloc>(
+    () => ClothingUploadBloc(_getIt<VendorRepository>()),
   );
 }
 

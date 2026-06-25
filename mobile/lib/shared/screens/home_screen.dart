@@ -111,11 +111,27 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
         );
       case 3:
-        return _PlaceholderTab(
-          icon:    Icons.store,
-          title:   'Dashboard Vendeur',
-          subtitle: 'Gérez votre catalogue',
-          color:   Colors.orange,
+        return Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.store, size: 64, color: Colors.orange.withValues(alpha: 0.5)),
+              const SizedBox(height: 16),
+              Text('Dashboard Vendeur', style: theme.textTheme.titleLarge),
+              const SizedBox(height: 8),
+              Text(
+                'Gérez votre catalogue et vos statistiques',
+                style: theme.textTheme.bodyMedium?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 20),
+              FilledButton(
+                onPressed: () => context.push('/vendor/dashboard'),
+                child: const Text('Accéder au dashboard'),
+              ),
+            ],
+          ),
         );
       default:
         return const SizedBox.shrink();
@@ -359,49 +375,6 @@ class _StatusCard extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-}
-
-class _PlaceholderTab extends StatelessWidget {
-  final IconData icon;
-  final String   title;
-  final String   subtitle;
-  final Color    color;
-
-  const _PlaceholderTab({
-    required this.icon,
-    required this.title,
-    required this.subtitle,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Center(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 64, color: color.withValues(alpha: 0.5)),
-          const SizedBox(height: 16),
-          Text(title, style: theme.textTheme.titleLarge),
-          const SizedBox(height: 8),
-          Text(
-            subtitle,
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'En cours de développement…',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
       ),
     );
   }

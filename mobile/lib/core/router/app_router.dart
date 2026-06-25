@@ -25,6 +25,12 @@ import '../../features/tryon/presentation/bloc/fit_analysis_bloc.dart';
 import '../../features/tryon/presentation/screens/fit_analysis_screen.dart';
 import '../../features/tryon/presentation/bloc/tryon_history_bloc.dart';
 import '../../features/tryon/presentation/screens/tryon_history_screen.dart';
+import '../../features/vendor/presentation/bloc/vendor_dashboard_bloc.dart';
+import '../../features/vendor/presentation/bloc/catalog_management_bloc.dart';
+import '../../features/vendor/presentation/bloc/clothing_upload_bloc.dart';
+import '../../features/vendor/presentation/screens/vendor_dashboard_screen.dart';
+import '../../features/vendor/presentation/screens/catalog_management_screen.dart';
+import '../../features/vendor/presentation/screens/clothing_upload_screen.dart';
 
 GoRouter buildRouter(AuthBloc authBloc) {
   return GoRouter(
@@ -138,6 +144,27 @@ GoRouter buildRouter(AuthBloc authBloc) {
         builder: (context, state) => BlocProvider(
           create: (_) => GetIt.instance<TryOnHistoryBloc>(),
           child:  const TryOnHistoryScreen(),
+        ),
+      ),
+      GoRoute(
+        path:    '/vendor/dashboard',
+        builder: (context, state) => BlocProvider(
+          create: (_) => GetIt.instance<VendorDashboardBloc>(),
+          child:  const VendorDashboardScreen(),
+        ),
+      ),
+      GoRoute(
+        path:    '/vendor/catalog',
+        builder: (context, state) => BlocProvider(
+          create: (_) => GetIt.instance<CatalogManagementBloc>(),
+          child:  const CatalogManagementScreen(),
+        ),
+      ),
+      GoRoute(
+        path:    '/vendor/upload',
+        builder: (context, state) => BlocProvider(
+          create: (_) => GetIt.instance<ClothingUploadBloc>(),
+          child:  const ClothingUploadScreen(),
         ),
       ),
     ],

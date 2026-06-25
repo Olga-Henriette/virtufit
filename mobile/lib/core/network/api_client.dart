@@ -8,9 +8,9 @@ class ApiClient {
 
   static String get _baseUrl {
     if (kDebugMode) {
-      return 'http://192.168.0.135:3000/api/v1'; 
+      return 'http://192.168.0.135:3000/api/v1';
     }
-    return 'https://api.virtufit.com/api/v1'; 
+    return 'https://api.virtufit.com/api/v1';
   }
 
   ApiClient({required this._storage}) {
@@ -43,8 +43,26 @@ class ApiClient {
 
   Future<Response> delete(String path) => _dio.delete(path);
 
-  Future<Response> postForm(String path, {required FormData data}) =>
-      _dio.post(path, data: data);
+  /// Pour les uploads multipart (FormData) — timeout étendu et JAMAIS
+  /// retryable automatiquement (un FormData ne peut être envoyé qu'une fois).
+  Future<Response> postForm(
+    String path, {
+    required FormData data,
+    Duration sendTimeout    = const Duration(minutes: 5),
+    Duration receiveTimeout = const Duration(minutes: 6),
+    void Function(int sent, int total)? onSendProgress,
+  }) {
+    return _dio.post(
+      path,
+      data: data,
+      options: Options(
+        sendTimeout:    sendTimeout,
+        receiveTimeout: receiveTimeout,
+        extra: {'noAuthRetry': true},
+      ),
+      onSendProgress: onSendProgress,
+    );
+  }
 }
 
 class _AuthInterceptor extends Interceptor {
@@ -55,8 +73,8 @@ class _AuthInterceptor extends Interceptor {
 
   @override
   Future<void> onRequest(
-    RequestOptions          options,
-    RequestInterceptorHandler handler,
+    RequestOptions             options,
+    RequestInterceptorHandler  handler,
   ) async {
     final token = await _storage.getAccessToken();
     if (token != null) {
@@ -71,15 +89,18 @@ class _AuthInterceptor extends Interceptor {
     ErrorInterceptorHandler handler,
   ) async {
     final requestPath = err.requestOptions.path;
+    final noRetry      = err.requestOptions.extra['noAuthRetry'] == true;
 
-    // Si l'erreur 401 vient de la route login ou refresh, on ne tente pas de refresh token
-    if (err.response?.statusCode == 401 && 
-        !requestPath.contains('/auth/login') && 
-        !requestPath.contains('/auth/refresh')) {
-      
-      // Crée une instance isolée pour éviter de boucler sur l'intercepteur
+    // Ne JAMAIS retry une requête marquée noAuthRetry (FormData/upload)
+    // ni les routes d'auth elles-mêmes.
+    final shouldAttemptRefresh = err.response?.statusCode == 401 &&
+        !noRetry &&
+        !requestPath.contains('/auth/login') &&
+        !requestPath.contains('/auth/refresh');
+
+    if (shouldAttemptRefresh) {
       final refreshDio = Dio(BaseOptions(baseUrl: _mainDio.options.baseUrl));
-      
+
       try {
         final refreshToken = await _storage.getRefreshToken();
         if (refreshToken == null) {
@@ -94,7 +115,7 @@ class _AuthInterceptor extends Interceptor {
 
         final newAccess  = response.data['data']['accessToken']  as String;
         final newRefresh = response.data['data']['refreshToken'] as String;
-        final userId     = await _storage.getUserId() ?? '';
+        final userId      = await _storage.getUserId() ?? '';
 
         await _storage.saveTokens(
           accessToken:  newAccess,
@@ -102,7 +123,6 @@ class _AuthInterceptor extends Interceptor {
           userId:       userId,
         );
 
-        // Rejoue la requête initiale avec le nouveau token
         err.requestOptions.headers['Authorization'] = 'Bearer $newAccess';
         final retried = await _mainDio.fetch(err.requestOptions);
         handler.resolve(retried);
@@ -113,8 +133,7 @@ class _AuthInterceptor extends Interceptor {
         refreshDio.close();
       }
     }
-    
-    // Transmet l'erreur normalement à l'application
+
     handler.next(err);
   }
 }
