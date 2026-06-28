@@ -11,7 +11,6 @@ export interface MeasurementInput {
   neckCm?: number;
   armLengthCm?: number;
   thighCm?: number;
-  gender?: Gender;
 }
 
 export interface Measurement extends MeasurementInput {

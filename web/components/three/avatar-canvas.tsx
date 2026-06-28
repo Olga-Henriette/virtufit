@@ -2,7 +2,7 @@
 
 import { Suspense } from "react";
 import { Canvas } from "@react-three/fiber";
-import { Environment, OrbitControls, ContactShadows } from "@react-three/drei";
+import { OrbitControls, ContactShadows, Lightformer, Environment } from "@react-three/drei";
 import { Spinner } from "@/components/ui/spinner";
 
 interface AvatarCanvasProps {
@@ -32,9 +32,30 @@ export function AvatarCanvas({ children, className }: AvatarCanvasProps) {
         <directionalLight position={[-3, 3, -2]} intensity={0.5} />
         <hemisphereLight args={["#ffffff", "#888888", 0.6]} />
 
-        {/* Environnement neutre à faible intensité pour éviter
-            les reflets bleutés/colorés sur les matériaux clairs */}
-        <Environment preset="apartment" environmentIntensity={0.25} />
+        <Environment resolution={256}>
+          <group>
+            <Lightformer
+              intensity={2}
+              color="white"
+              position={[0, 4, -3]}
+              scale={[6, 4, 1]}
+            />
+            <Lightformer
+              intensity={0.7}
+              color="white"
+              position={[-4, 2, 2]}
+              scale={[3, 4, 1]}
+              rotation={[0, Math.PI / 3, 0]}
+            />
+            <Lightformer
+              intensity={0.7}
+              color="white"
+              position={[4, 2, 2]}
+              scale={[3, 4, 1]}
+              rotation={[0, -Math.PI / 3, 0]}
+            />
+          </group>
+        </Environment>
 
         <Suspense fallback={null}>
           {children}
