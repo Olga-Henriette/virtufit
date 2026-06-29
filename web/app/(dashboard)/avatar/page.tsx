@@ -1,13 +1,15 @@
 "use client";
 
 import { useState, type FormEvent } from "react";
-import { Ruler, Weight, User2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Ruler, Weight, User2, AlertCircle, CheckCircle2, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { AvatarViewer3D } from "@/components/three/avatar-viewer-3d";
+import { AvatarInfoCard } from "@/components/avatar/avatar-info-card";
 import { useAuthStore } from "@/lib/store/auth.store";
-import { useActiveMeasurement, useCreateMeasurement } from "@/lib/hooks/use-measurements";
+import { useCreateMeasurement } from "@/lib/hooks/use-measurements";
+import { useActiveAvatar, useGenerateAvatar } from "@/lib/hooks/use-avatar";
 import { extractErrorMessage } from "@/lib/api/error";
 import type { Gender, MeasurementInput } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
@@ -20,8 +22,9 @@ const genderOptions: { value: Gender; label: string }[] = [
 
 export default function AvatarMeasurementsPage() {
   const user = useAuthStore((s) => s.user);
-  const { data: activeMeasurement } = useActiveMeasurement(user?.id);
+  const { data: activeAvatar } = useActiveAvatar(user?.id);
   const createMeasurement = useCreateMeasurement(user?.id);
+  const generateAvatar = useGenerateAvatar(user?.id);
 
   const [gender, setGender] = useState<Gender>("neutral");
   const [form, setForm] = useState<Partial<MeasurementInput>>({});
@@ -61,7 +64,7 @@ export default function AvatarMeasurementsPage() {
       return;
     }
 
-    const payload: MeasurementInput = {
+    const measurementsPayload: MeasurementInput = {
       heightCm: form.heightCm!,
       weightKg: form.weightKg!,
       chestCm: form.chestCm!,
@@ -75,12 +78,19 @@ export default function AvatarMeasurementsPage() {
     };
 
     try {
-      await createMeasurement.mutateAsync(payload);
+      // 1. Enregistre les mensurations en base
+      await createMeasurement.mutateAsync(measurementsPayload);
+
+      // 2. Génère l'avatar 3D (SMPL) à partir de ces mensurations + genre
+      await generateAvatar.mutateAsync({ ...measurementsPayload, gender });
+
       setSuccess(true);
     } catch (err) {
-      setError(extractErrorMessage(err, "Impossible d'enregistrer les mensurations."));
+      setError(extractErrorMessage(err, "Impossible de générer l'avatar."));
     }
   }
+
+  const isProcessing = createMeasurement.isPending || generateAvatar.isPending;
 
   return (
     <div className="mx-auto max-w-6xl px-6 py-8">
@@ -90,7 +100,7 @@ export default function AvatarMeasurementsPage() {
       </p>
 
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-2">
-        {/* Formulaire  */}
+        {/* Formulaire */}
         <Card>
           <CardHeader>
             <CardTitle>Mensurations</CardTitle>
@@ -109,7 +119,7 @@ export default function AvatarMeasurementsPage() {
             {success && (
               <div className="flex items-start gap-2 rounded-md bg-green-50 p-3 text-sm text-green-700">
                 <CheckCircle2 className="mt-0.5 size-4 shrink-0" />
-                Mensurations enregistrées avec succès.
+                Avatar généré avec succès.
               </div>
             )}
 
@@ -209,26 +219,31 @@ export default function AvatarMeasurementsPage() {
               </div>
             </details>
 
-            <Button type="submit" className="w-full" isLoading={createMeasurement.isPending}>
-              Enregistrer et continuer
+            <Button type="submit" className="w-full" isLoading={isProcessing}>
+              <Sparkles className="size-4" />
+              {isProcessing ? "Génération en cours…" : "Générer mon avatar 3D"}
             </Button>
           </form>
         </Card>
 
-        {/* Aperçu 3D */}
-        <Card className="flex flex-col p-0 overflow-hidden">
-          <div className="border-b border-border p-4">
-            <CardTitle>Aperçu de l&apos;avatar</CardTitle>
-            <CardDescription>
-              {activeMeasurement
-                ? "Avatar basé sur vos mensurations actuelles."
-                : "Aperçu générique — sera personnalisé après enregistrement."}
-            </CardDescription>
-          </div>
-          <div className="h-[500px] flex-1">
-            <AvatarViewer3D gender={gender} />
-          </div>
-        </Card>
+        {/* Aperçu 3D + infos */}
+        <div className="space-y-6">
+          <Card className="flex flex-col overflow-hidden p-0">
+            <div className="border-b border-border p-4">
+              <CardTitle>Aperçu de l&apos;avatar</CardTitle>
+              <CardDescription>
+                {activeAvatar
+                  ? "Avatar généré à partir de vos paramètres SMPL réels."
+                  : "Aperçu générique — sera personnalisé après génération."}
+              </CardDescription>
+            </div>
+            <div className="h-[420px] flex-1">
+              <AvatarViewer3D gender={activeAvatar?.gender ?? gender} />
+            </div>
+          </Card>
+
+          {activeAvatar && <AvatarInfoCard avatar={activeAvatar} />}
+        </div>
       </div>
     </div>
   );
