@@ -2,94 +2,145 @@
 
 import { useGLTF } from "@react-three/drei";
 import { useEffect, useMemo, useRef } from "react";
-import { Box3, Vector3, type Group, type Mesh, MeshStandardMaterial } from "three";
+import {
+  Box3,
+  Vector3,
+  type Group,
+  type Mesh,
+  MeshStandardMaterial,
+  type Object3D,
+} from "three";
+import {
+  computeBodyRegionScale,
+  NEUTRAL_BODY_SCALE,
+  type BodyRegionScale,
+} from "@/lib/three/morphology-deform";
+import { applyBodyDeformation } from "@/lib/three/apply-body-deformation";
+import type { MeasurementInput } from "@/lib/types";
 
-const TARGET_HEIGHT_M = 1.75; // Hauteur humaine standard de référence
+const TARGET_HEIGHT_M = 1.75;
 
 interface HumanModelProps {
   modelPath: string;
+  measurements?: Partial<MeasurementInput> | null;
   onReady?: (size: Vector3, center: Vector3) => void;
 }
 
 /**
- * Charge un modèle humain glTF, le met à l'échelle pour correspondre
- * à une hauteur humaine standard (peu importe l'unité d'origine du fichier),
- * le recentre sur l'origine, et applique un matériau de remplacement
- * réaliste si aucune texture n'est embarquée.
+ * Clone une scène glTF en PROFONDEUR, y compris les géométries des meshes.
+ *
+ * `Object3D.clone(true)` clone uniquement la hiérarchie de nœuds (transforms,
+ * parenté) — il NE clone PAS les BufferGeometry sous-jacentes, qui restent
+ * partagées par référence avec l'asset mis en cache par useGLTF. Sans ce
+ * clonage explicite, toute déformation de géométrie modifierait l'asset
+ * source de façon cumulative et irréversible entre les rendus.
  */
-export function HumanModel({ modelPath, onReady }: HumanModelProps) {
+function deepCloneSceneWithGeometry(source: Object3D): Object3D {
+  const cloned = source.clone(true);
+
+  const sourceMeshes: Mesh[] = [];
+  source.traverse((child) => {
+    if ((child as Mesh).isMesh) sourceMeshes.push(child as Mesh);
+  });
+
+  const clonedMeshes: Mesh[] = [];
+  cloned.traverse((child) => {
+    if ((child as Mesh).isMesh) clonedMeshes.push(child as Mesh);
+  });
+
+  // Les deux traversées préservent le même ordre (clone(true) garde la
+  // hiérarchie identique), donc on peut associer terme à terme.
+  for (let i = 0; i < clonedMeshes.length; i++) {
+    const original = sourceMeshes[i];
+    const copy = clonedMeshes[i];
+    if (original?.geometry) {
+      copy.geometry = original.geometry.clone();
+    }
+  }
+
+  return cloned;
+}
+
+function prepareAvatarScene(
+  scene: Object3D,
+  bodyScale: BodyRegionScale,
+): { size: Vector3; center: Vector3 } {
+  let hasAnyTexture = false;
+
+  scene.traverse((child) => {
+    const mesh = child as Mesh;
+    if (mesh.isMesh) {
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      const material = mesh.material as MeshStandardMaterial;
+      if (material?.map) hasAnyTexture = true;
+    }
+  });
+
+  if (!hasAnyTexture) {
+    scene.traverse((child) => {
+      const mesh = child as Mesh;
+      if (mesh.isMesh) {
+        mesh.material = new MeshStandardMaterial({
+          color: "#d9a583",
+          roughness: 0.75,
+          metalness: 0.0,
+          envMapIntensity: 0.3,
+        });
+      }
+    });
+  }
+
+  scene.scale.set(1, 1, 1);
+  scene.position.set(0, 0, 0);
+
+  const rawBox = new Box3().setFromObject(scene);
+  const rawSize = new Vector3();
+  rawBox.getSize(rawSize);
+
+  const normalizeFactor = rawSize.y > 0 ? TARGET_HEIGHT_M / rawSize.y : 1;
+  scene.scale.setScalar(normalizeFactor);
+
+  applyBodyDeformation(scene, bodyScale);
+
+  const box = new Box3().setFromObject(scene);
+  const size = new Vector3();
+  const center = new Vector3();
+  box.getSize(size);
+  box.getCenter(center);
+
+  scene.position.x -= center.x;
+  scene.position.z -= center.z;
+  scene.position.y -= box.min.y;
+
+  return { size, center };
+}
+
+export function HumanModel({ modelPath, measurements, onReady }: HumanModelProps) {
   const groupRef = useRef<Group>(null);
   const { scene } = useGLTF(modelPath);
 
-  const clonedScene = useMemo(() => {
-    const clone = scene.clone(true);
+  const bodyScale: BodyRegionScale = useMemo(
+    () => (measurements ? computeBodyRegionScale(measurements) : NEUTRAL_BODY_SCALE),
+    [measurements],
+  );
 
-    // 1. Force la taille d'origine à zéro pour mesurer proprement
-    clone.scale.set(1, 1, 1);
-    clone.position.set(0, 0, 0);
-
-    const rawBox = new Box3().setFromObject(clone);
-    const rawSize = new Vector3();
-    rawBox.getSize(rawSize);
-
-    // 2. Ajuste la hauteur automatique à 1.75m (TARGET_HEIGHT_M)
-    const scaleFactor = rawSize.y > 0 ? TARGET_HEIGHT_M / rawSize.y : 1;
-    clone.scale.setScalar(scaleFactor);
-
-    // 3. Calcule le nouveau centre après le changement de taille
-    const box = new Box3().setFromObject(clone);
-    const center = new Vector3();
-    box.getCenter(center);
-
-    // 4. Positionne le clone en toute sécurité ici 
-    clone.position.x -= center.x;
-    clone.position.z -= center.z;
-    clone.position.y -= box.min.y;
-
-    return clone;
-  }, [scene]);
+  const preparedScene = useMemo(() => {
+    // Clonage profond INCLUANT les géométries — l'asset en cache par
+    // useGLTF n'est jamais modifié, donc aucune mutation cumulative
+    // possible entre les rendus, peu importe le nombre de régénérations.
+    const cloned = deepCloneSceneWithGeometry(scene);
+    const { size, center } = prepareAvatarScene(cloned, bodyScale);
+    return { scene: cloned, size, center };
+  }, [scene, bodyScale]);
 
   useEffect(() => {
-    let hasAnyTexture = false;
-
-    clonedScene.traverse((child) => {
-      const mesh = child as Mesh;
-      if (mesh.isMesh) {
-        mesh.castShadow = true;
-        mesh.receiveShadow = true;
-
-        const material = mesh.material as MeshStandardMaterial;
-        if (material?.map) hasAnyTexture = true;
-      }
-    });
-
-    if (!hasAnyTexture) {
-      clonedScene.traverse((child) => {
-        const mesh = child as Mesh;
-        if (mesh.isMesh) {
-          mesh.material = new MeshStandardMaterial({
-            color: "#d9a583",
-            roughness: 0.75,
-            metalness: 0.0,
-            envMapIntensity: 0.3,
-          });
-        }
-      });
-    }
-
-    // Calcule la boîte, la taille et le centre de manière propre
-    const box = new Box3().setFromObject(clonedScene);
-    const size = new Vector3();
-    const center = new Vector3();
-    box.getSize(size);
-    box.getCenter(center);
-
-    onReady?.(size, center);
-  }, [clonedScene, onReady]);
+    onReady?.(preparedScene.size, preparedScene.center);
+  }, [preparedScene, onReady]);
 
   return (
     <group ref={groupRef}>
-      <primitive object={clonedScene} />
+      <primitive object={preparedScene.scene} />
     </group>
   );
 }

@@ -18,7 +18,8 @@ export function useCreateMeasurement(userId: string | undefined) {
   return useMutation({
     mutationFn: (payload: MeasurementInput) =>
       measurementsService.create(userId!, payload),
-    onSuccess: () => {
+    onSuccess: (newMeasurement) => {
+      queryClient.setQueryData(["measurements", "active", userId], newMeasurement);
       queryClient.invalidateQueries({ queryKey: ["measurements", "active", userId] });
     },
   });

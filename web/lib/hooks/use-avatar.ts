@@ -18,7 +18,10 @@ export function useGenerateAvatar(userId: string | undefined) {
   return useMutation({
     mutationFn: (measurements: MeasurementInput & { gender?: Gender }) =>
       avatarService.generate({ userId: userId!, measurements }),
-    onSuccess: () => {
+    onSuccess: (newAvatar) => {
+      // Met à jour directement le cache avec la nouvelle donnée plutôt
+      // que d'attendre un refetch, pour un effet immédiat sans reload.
+      queryClient.setQueryData(["avatar", "active", userId], newAvatar);
       queryClient.invalidateQueries({ queryKey: ["avatar", "active", userId] });
     },
   });
