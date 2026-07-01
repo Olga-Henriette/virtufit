@@ -235,6 +235,10 @@ export class AvatarService {
     dto.weightKg = doc.weightKg;
     dto.generationTimeMs = doc.generationTimeMs;
     dto.isActive = doc.isActive;
+    dto.skinTone = doc.skinTone ?? undefined;
+    dto.hairColor = doc.hairColor ?? undefined;
+    dto.skinRgb = doc.skinRgb ?? undefined;
+    dto.hairRgb = doc.hairRgb ?? undefined;
     dto.createdAt = doc.created_at;
     return dto;
   }

@@ -15,6 +15,7 @@ import { useDebouncedValue } from "@/lib/hooks/use-debounced-value";
 import { extractErrorMessage } from "@/lib/api/error";
 import type { Gender, MeasurementInput } from "@/lib/types";
 import { cn } from "@/lib/utils/cn";
+import { useRouter } from "next/navigation";
 
 const genderOptions: { value: Gender; label: string }[] = [
   { value: "male", label: "Homme" },
@@ -34,6 +35,8 @@ export default function AvatarMeasurementsPage() {
   const [form, setForm] = useState<Partial<MeasurementInput>>({});
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+
+  const router = useRouter();
 
   const previewMeasurements =
     activeMeasurement ?? (Object.keys(form).length > 0 ? form : null);
@@ -80,10 +83,10 @@ export default function AvatarMeasurementsPage() {
     try {
       await createMeasurement.mutateAsync(payload);
       const newAvatar = await generateAvatar.mutateAsync({ ...payload, gender });
-
-      // Sauvegarde dans le store pour la comparaison avant/après
       saveSnapshot(newAvatar, payload);
       setSuccess(true);
+
+      setTimeout(() => router.push("/avatar/personalize"), 1200);
     } catch (err) {
       setError(extractErrorMessage(err, "Impossible de générer l'avatar."));
     }
@@ -176,6 +179,14 @@ export default function AvatarMeasurementsPage() {
               {isProcessing ? "Génération en cours…" : "Générer mon avatar 3D"}
             </Button>
           </form>
+          {activeAvatar && (
+            <button
+              onClick={() => router.push("/avatar/personalize")}
+              className="mt-4 w-full rounded-md border border-border py-2.5 text-sm font-medium text-text-secondary transition-colors hover:bg-surface-muted hover:text-text-primary"
+            >
+              Personnaliser l&apos;apparence (photo)
+            </button>
+          )}
         </Card>
 
         {/* Panneau aperçu (redimensionnable) */}

@@ -23,6 +23,7 @@ const TARGET_HEIGHT_M = 1.75;
 interface HumanModelProps {
   modelPath: string;
   measurements?: Partial<MeasurementInput> | null;
+  skinColorHex?: string | null;
   onReady?: (size: Vector3, center: Vector3) => void;
 }
 
@@ -64,6 +65,7 @@ function deepCloneSceneWithGeometry(source: Object3D): Object3D {
 function prepareAvatarScene(
   scene: Object3D,
   bodyScale: BodyRegionScale,
+  skinColorHex: string | null,
 ): { size: Vector3; center: Vector3 } {
   let hasAnyTexture = false;
 
@@ -78,11 +80,12 @@ function prepareAvatarScene(
   });
 
   if (!hasAnyTexture) {
+    const color = skinColorHex ?? "#d9a583";
     scene.traverse((child) => {
       const mesh = child as Mesh;
       if (mesh.isMesh) {
         mesh.material = new MeshStandardMaterial({
-          color: "#d9a583",
+          color,
           roughness: 0.75,
           metalness: 0.0,
           envMapIntensity: 0.3,
@@ -116,7 +119,7 @@ function prepareAvatarScene(
   return { size, center };
 }
 
-export function HumanModel({ modelPath, measurements, onReady }: HumanModelProps) {
+export function HumanModel({ modelPath, measurements, skinColorHex, onReady }: HumanModelProps) {
   const groupRef = useRef<Group>(null);
   const { scene } = useGLTF(modelPath);
 
@@ -130,9 +133,9 @@ export function HumanModel({ modelPath, measurements, onReady }: HumanModelProps
     // useGLTF n'est jamais modifié, donc aucune mutation cumulative
     // possible entre les rendus, peu importe le nombre de régénérations.
     const cloned = deepCloneSceneWithGeometry(scene);
-    const { size, center } = prepareAvatarScene(cloned, bodyScale);
+    const { size, center } = prepareAvatarScene(cloned, bodyScale, skinColorHex ?? null);
     return { scene: cloned, size, center };
-  }, [scene, bodyScale]);
+  }, [scene, bodyScale, skinColorHex]);
 
   useEffect(() => {
     onReady?.(preparedScene.size, preparedScene.center);

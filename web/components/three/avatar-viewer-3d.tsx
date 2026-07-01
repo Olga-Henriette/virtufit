@@ -11,6 +11,7 @@ import type { Gender, MeasurementInput } from "@/lib/types";
 interface AvatarViewer3DProps {
   gender?: Gender | string;
   measurements?: Partial<MeasurementInput> | null;
+  skinColorHex?: string | null;
   className?: string;
   showDimensions?: boolean;
   showZoomControls?: boolean;
@@ -19,6 +20,7 @@ interface AvatarViewer3DProps {
 export function AvatarViewer3D({
   gender,
   measurements,
+  skinColorHex,
   className,
   showDimensions = false,
   showZoomControls = true,
@@ -34,7 +36,12 @@ export function AvatarViewer3D({
   return (
     <div className={className ?? "relative h-full w-full"}>
       <AvatarCanvas ref={canvasRef}>
-        <HumanModel modelPath={modelPath} measurements={measurements} onReady={handleReady} />
+        <HumanModel
+          modelPath={modelPath}
+          measurements={measurements}
+          skinColorHex={skinColorHex}
+          onReady={handleReady}
+        />
       </AvatarCanvas>
 
       {showZoomControls && <AvatarZoomControls canvasRef={canvasRef} />}

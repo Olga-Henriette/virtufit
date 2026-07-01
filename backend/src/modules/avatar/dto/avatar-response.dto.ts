@@ -1,4 +1,4 @@
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class SmplParametersDto {
   @ApiProperty({ type: [Number], description: '10 paramètres de forme SMPL' })
@@ -52,6 +52,24 @@ export class AvatarResponseDto {
 
   @ApiProperty({ example: true })
   isActive!: boolean;
+
+  @ApiPropertyOptional({
+    example: 'medium',
+    description: 'Ton de peau détecté',
+  })
+  skinTone?: string;
+
+  @ApiPropertyOptional({
+    example: 'dark_brown',
+    description: 'Couleur de cheveux détectée',
+  })
+  hairColor?: string;
+
+  @ApiPropertyOptional({ type: [Number], example: [180, 140, 110] })
+  skinRgb?: number[];
+
+  @ApiPropertyOptional({ type: [Number], example: [60, 40, 30] })
+  hairRgb?: number[];
 
   @ApiProperty({ example: '2026-06-03T00:00:00.000Z' })
   createdAt!: Date;
